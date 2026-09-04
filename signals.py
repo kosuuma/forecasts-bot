@@ -237,6 +237,22 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
             if strength_label is None:
                 return None  # Слабый сигнал из-за конфликта таймфреймов
 
+    # --- ML Prediction ---
+    global _ml_model
+    if _ml_model is None:
+        _ml_model = load_model()
+
+    ml_confidence = 0.5  # нейтральная вероятность по умолчанию
+    if _ml_model is not None:
+        ml_proba = ml_predict(df, _ml_model)
+        if ml_proba is not None:
+            ml_confidence = ml_proba
+            # Если ML предсказывает низкую вероятность win — штрафуем
+            if ml_proba < 0.4:
+                strength_label = "Medium" if strength_label == "Strong" else None
+                if strength_label is None:
+                    return None  # ML не подтверждает сигнал
+
     strength_pct = round(score / total_indicators * 100)
 
     # --- Расчёт TP/SL на основе ATR ---
@@ -269,6 +285,7 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
         expiry_minutes=expiry_minutes,
         higher_tf_trend=higher_tf_trend,
         higher_tf_aligned=higher_tf_aligned,
+        ml_confidence=round(ml_confidence, 3),
         patterns=patterns,
         support=sr["support"],
         resistance=sr["resistance"],
@@ -320,6 +337,12 @@ def format_signal_message(signal: Signal) -> str:
 
     if signal.patterns:
         lines.append(f"🕯 Паттерн: {', '.join(signal.patterns)}")
+
+    # ML Prediction
+    if signal.ml_confidence > 0:
+        ml_bar_len = round(signal.ml_confidence * 10)
+        ml_bar = "█" * ml_bar_len + "░" * (10 - ml_bar_len)
+        lines.append(f"🤖 ML: {ml_bar} {signal.ml_confidence:.0%}")
 
     lines.append("━━━━━━━━━━━━━━━━")
     lines.append(f"🧱 Поддержка: {signal.support} | Сопротивление: {signal.resistance}")
