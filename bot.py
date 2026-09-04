@@ -139,7 +139,7 @@ async def cmd_signals(message: Message, db: Database):
         return
 
     lines = ["📜 Последние 10 сигналов:\n"]
-    outcome_icons = {"win": "🟢", "loss": "🔴", "pending": "⏳"}
+    outcome_icons = {"win": "🟢", "loss": "🔴", "pending": "⏳", "expired": "⚪"}
     for s in recent:
         arrow = "▲" if s["direction"] == "UP" else "▼"
         icon = outcome_icons.get(s["outcome"], "⏳")
