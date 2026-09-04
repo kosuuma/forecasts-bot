@@ -294,10 +294,18 @@ def format_signal_message(signal: Signal) -> str:
         "━━━━━━━━━━━━━━━━",
         f"🪙 Пара: {signal.symbol[:-4]}/{signal.symbol[-4:]}",
         f"⏰ Таймфрейм: {signal.timeframe}",
+    ]
+
+    # Multi-TF trend info
+    if signal.higher_tf_trend != "—":
+        aligned_icon = "✅" if signal.higher_tf_aligned else "❌"
+        lines.append(f"📈 Тренд старшего TF: {signal.higher_tf_trend} {aligned_icon}")
+
+    lines.extend([
         f"📈 Направление: {direction_text}",
         f"💪 Сила: {bar} {signal.strength_pct}% ({signal.strength_label})",
         "━━━━━━━━━━━━━━━━",
-    ]
+    ])
 
     icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯", "Funding": "💹", "Orderbook": "📚", "Spread": "📏"}
     for check in signal.checks:
