@@ -68,7 +68,7 @@ async def resolve_pending_signals(session: aiohttp.ClientSession, db: Database):
             expiry = sig["expiry_minutes"] or 15
 
             # Загружаем свечи за всё время жизни сигнала
-            limit_needed = int(expay // 1) + 2  # примерно по 1 свече в минуту (1m TF)
+            limit_needed = int(expiry // 1) + 2  # примерно по 1 свече в минуту (1m TF)
             if limit_needed > 500:
                 limit_needed = 500
 
