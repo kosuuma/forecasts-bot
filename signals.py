@@ -35,6 +35,8 @@ class Signal:
     sl_price: float = 0.0
     atr: float = 0.0
     expiry_minutes: int = 15
+    higher_tf_trend: str = "—"  # бычий / медвежий / боковой / —
+    higher_tf_aligned: bool = False
     patterns: list = field(default_factory=list)
     support: float = 0.0
     resistance: float = 0.0
