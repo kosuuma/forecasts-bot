@@ -17,7 +17,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import config
 from database import Database
 from bot import build_dispatcher
-from exchanges import fetch_klines, fetch_funding_rate
+from exchanges import fetch_klines, fetch_funding_rate, fetch_orderbook_depth
 from signals import analyze, format_signal_message
 from monitor import check_price_spikes, format_spike_alert, resolve_pending_signals
 
