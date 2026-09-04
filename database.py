@@ -30,8 +30,13 @@ CREATE TABLE IF NOT EXISTS signals_history (
     strength_label TEXT NOT NULL,
     strength_pct INTEGER NOT NULL,
     price REAL NOT NULL,
+    tp_price REAL,
+    sl_price REAL,
+    atr REAL,
+    expiry_minutes INTEGER DEFAULT 15,
     created_at TEXT DEFAULT (datetime('now')),
-    outcome TEXT DEFAULT 'pending'  -- pending / win / loss
+    resolved_at TEXT,
+    outcome TEXT DEFAULT 'pending'  -- pending / win / loss / expired
 );
 
 CREATE TABLE IF NOT EXISTS pairs (
@@ -128,10 +133,13 @@ class Database:
     # --- История сигналов ---
     async def save_signal(self, signal) -> int:
         cursor = await self._conn.execute(
-            """INSERT INTO signals_history (symbol, timeframe, direction, strength_label, strength_pct, price)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO signals_history
+               (symbol, timeframe, direction, strength_label, strength_pct,
+                price, tp_price, sl_price, atr, expiry_minutes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (signal.symbol, signal.timeframe, signal.direction, signal.strength_label,
-             signal.strength_pct, signal.price),
+             signal.strength_pct, signal.price, signal.tp_price, signal.sl_price,
+             signal.atr, signal.expiry_minutes),
         )
         await self._conn.commit()
         return cursor.lastrowid
