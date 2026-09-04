@@ -57,6 +57,12 @@ FUNDING_RATE_BULLISH = -0.01   # funding < -0.01% = шортит рынок → 
 FUNDING_RATE_BEARISH = 0.01    # funding > +0.01% = лонгит рынок → бонус для DOWN
 FUNDING_RATE_EXTREME = 0.05    # экстремальный funding = +1 бонус к скору
 
+# --- Orderbook ---
+ORDERBOOK_DEPTH = 20             # количество уровней стакана для анализа
+ORDERBOOK_BID_ASK_RATIO = 1.5   # бычий сигнал: bid/ask > 1.5
+ORDERBOOK_BEARISH_RATIO = 0.67  # медвежий сигнал: bid/ask < 0.67
+ORDERBOOK_SPREAD_MAX = 0.5      # максимальный spread в % (иначе штраф)
+
 # Резкое движение цены для отдельного алерта (% за 5 минут)
 PRICE_SPIKE_PCT = 3.0
 
