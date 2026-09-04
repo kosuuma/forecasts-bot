@@ -13,6 +13,40 @@ from indicators import calculate_all, find_support_resistance, detect_candlestic
 logger = logging.getLogger("signals")
 
 
+def check_higher_tf_alignment(df_higher: pd.DataFrame, direction: str) -> tuple:
+    """
+    Проверяет тренд на старшем таймфрейме.
+    Возвращает (trend_label, is_aligned):
+      trend_label: 'бычий' / 'медвежий' / 'боковой'
+      is_aligned: True если тренд совпадает с направлением сигнала
+    """
+    if df_higher is None or len(df_higher) < 200:
+        return ("—", False)
+
+    last = df_higher.iloc[-1]
+
+    if pd.isna(last.get("ema_50")) or pd.isna(last.get("ema_200")):
+        return ("—", False)
+
+    ema_50 = last["ema_50"]
+    ema_200 = last["ema_200"]
+    close = last["close"]
+
+    # Определяем тренд на старшем TF
+    if close > ema_50 > ema_200:
+        trend = "бычий"
+    elif close < ema_50 < ema_200:
+        trend = "медвежий"
+    else:
+        trend = "боковой"
+
+    # Проверяем совпадение с направлением сигнала
+    aligned = (direction == "UP" and trend == "бычий") or \
+              (direction == "DOWN" and trend == "медвежий")
+
+    return (trend, aligned)
+
+
 @dataclass
 class SignalCheck:
     """Результат проверки одного индикатора."""
