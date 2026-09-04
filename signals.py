@@ -136,6 +136,28 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
         up_checks.append(funding_check)
         down_checks.append(funding_check)
 
+    # --- Orderbook Check ---
+    if orderbook is not None:
+        ratio = orderbook.get("bid_ask_ratio", 1.0)
+        spread = orderbook.get("spread_pct", 0)
+        imbalance = orderbook.get("imbalance", 0)
+
+        # Бычий: bid/ask > 1.5 (strong bids支撑)
+        ob_up_ok = ratio >= config.ORDERBOOK_BID_ASK_RATIO
+        ob_up_detail = f"bid/ask={ratio:.2f} (сильные bids)"
+        up_checks.append(SignalCheck("Orderbook", ob_up_ok, ob_up_detail))
+
+        # Медвежий: bid/ask < 0.67 (strong asks压力)
+        ob_down_ok = ratio <= config.ORDERBOOK_BEARISH_RATIO
+        ob_down_detail = f"bid/ask={ratio:.2f} (сильные asks)"
+        down_checks.append(SignalCheck("Orderbook", ob_down_ok, ob_down_detail))
+
+        # Штраф за высокий spread (нужен для обоих направлений)
+        if spread > config.ORDERBOOK_SPREAD_MAX:
+            spread_penalty = SignalCheck("Spread", False, f"{spread:.2f}% (высокий)")
+            up_checks.append(spread_penalty)
+            down_checks.append(spread_penalty)
+
     up_score = sum(1 for c in up_checks if c.passed)
     down_score = sum(1 for c in down_checks if c.passed)
 
