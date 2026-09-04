@@ -52,6 +52,11 @@ ATR_MIN_PCT = 0.05
 
 VOLUME_SPIKE_MULTIPLIER = 1.5  # объём выше среднего в X раз считается аномальным
 
+# --- Funding Rate ---
+FUNDING_RATE_BULLISH = -0.01   # funding < -0.01% = шортит рынок → бонус для UP
+FUNDING_RATE_BEARISH = 0.01    # funding > +0.01% = лонгит рынок → бонус для DOWN
+FUNDING_RATE_EXTREME = 0.05    # экстремальный funding = +1 бонус к скору
+
 # Резкое движение цены для отдельного алерта (% за 5 минут)
 PRICE_SPIKE_PCT = 3.0
 
