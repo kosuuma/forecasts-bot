@@ -30,6 +30,15 @@ DEFAULT_PAIRS = [
 TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h"]
 DEFAULT_TIMEFRAME = "5m"
 
+# Иерархия таймфреймов: каждый TF → его "старший" TF
+TF_HIERARCHY = {
+    "1m": "5m",
+    "5m": "15m",
+    "15m": "1h",
+    "1h": "4h",
+    "4h": None,  # 4h — старший, нет выше
+}
+
 # --- Пороговые значения индикаторов ---
 RSI_PERIOD = 14
 RSI_OVERSOLD = 30
