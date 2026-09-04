@@ -55,12 +55,17 @@ async def scan_and_notify(bot: Bot):
 
     async with aiohttp.ClientSession() as session:
         for symbol in pairs:
-            # Получаем funding rate один раз на пару (для всех таймфреймов)
+            # Получаем funding rate и orderbook один раз на пару
             funding_rate = None
+            orderbook = None
             try:
                 funding_rate = await fetch_funding_rate(session, symbol, exchange=config.DEFAULT_EXCHANGE)
             except Exception as e:
                 logger.debug(f"Не удалось получить funding rate для {symbol}: {e}")
+            try:
+                orderbook = await fetch_orderbook_depth(session, symbol, exchange=config.DEFAULT_EXCHANGE)
+            except Exception as e:
+                logger.debug(f"Не удалось получить orderbook для {symbol}: {e}")
 
             for tf in needed_timeframes:
                 try:
@@ -71,7 +76,7 @@ async def scan_and_notify(bot: Bot):
                         continue  # rate limit: слишком рано для нового сигнала по этой паре
 
                     df = await fetch_klines(session, symbol, tf, exchange=config.DEFAULT_EXCHANGE, limit=200)
-                    signal = analyze(df, symbol, tf, funding_rate=funding_rate)
+                    signal = analyze(df, symbol, tf, funding_rate=funding_rate, orderbook=orderbook)
                     if not signal:
                         continue
 
