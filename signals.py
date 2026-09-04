@@ -1,0 +1,202 @@
+"""
+Логика генерации торговых сигналов на основе рассчитанных индикаторов.
+"""
+import logging
+from dataclasses import dataclass, field
+from typing import Optional
+
+import pandas as pd
+
+import config
+from indicators import calculate_all, find_support_resistance, detect_candlestick_patterns
+
+logger = logging.getLogger("signals")
+
+
+@dataclass
+class SignalCheck:
+    """Результат проверки одного индикатора."""
+    name: str
+    passed: bool
+    detail: str
+
+
+@dataclass
+class Signal:
+    symbol: str
+    timeframe: str
+    direction: str  # "UP" или "DOWN"
+    strength_label: str  # Strong / Medium
+    strength_pct: int
+    confirmations: int
+    checks: list = field(default_factory=list)
+    price: float = 0.0
+    patterns: list = field(default_factory=list)
+    support: float = 0.0
+    resistance: float = 0.0
+    volume_ratio: float = 0.0
+    atr_pct: float = 0.0
+
+
+def _check_up_conditions(last: pd.Series, sr: dict) -> list:
+    checks = []
+
+    rsi_ok = last["rsi"] < config.RSI_OVERSOLD
+    checks.append(SignalCheck("RSI", rsi_ok, f"{last['rsi']:.1f}"))
+
+    macd_ok = last["macd"] > last["macd_signal"] and last["macd_hist"] > 0
+    checks.append(SignalCheck("MACD", macd_ok, "Бычий кросс" if macd_ok else "Нет кросса"))
+
+    bb_ok = last["close"] <= last["bb_lower"] * 1.01
+    checks.append(SignalCheck("BB", bb_ok, "У нижней границы" if bb_ok else "В канале"))
+
+    ema_ok = last["close"] > last["ema_50"]
+    checks.append(SignalCheck("EMA", ema_ok, "Выше EMA50" if ema_ok else "Ниже EMA50"))
+
+    vol_ok = last["volume_ratio"] >= config.VOLUME_SPIKE_MULTIPLIER
+    checks.append(SignalCheck("Volume", vol_ok, f"x{last['volume_ratio']:.1f} от среднего"))
+
+    sr_ok = sr["distance_to_support_pct"] <= 0.5
+    checks.append(SignalCheck("S/R", sr_ok, "У поддержки" if sr_ok else "Не у уровня"))
+
+    return checks
+
+
+def _check_down_conditions(last: pd.Series, sr: dict) -> list:
+    checks = []
+
+    rsi_ok = last["rsi"] > config.RSI_OVERBOUGHT
+    checks.append(SignalCheck("RSI", rsi_ok, f"{last['rsi']:.1f}"))
+
+    macd_ok = last["macd"] < last["macd_signal"] and last["macd_hist"] < 0
+    checks.append(SignalCheck("MACD", macd_ok, "Медвежий кросс" if macd_ok else "Нет кросса"))
+
+    bb_ok = last["close"] >= last["bb_upper"] * 0.99
+    checks.append(SignalCheck("BB", bb_ok, "У верхней границы" if bb_ok else "В канале"))
+
+    ema_ok = last["close"] < last["ema_50"]
+    checks.append(SignalCheck("EMA", ema_ok, "Ниже EMA50" if ema_ok else "Выше EMA50"))
+
+    vol_ok = last["volume_ratio"] >= config.VOLUME_SPIKE_MULTIPLIER
+    checks.append(SignalCheck("Volume", vol_ok, f"x{last['volume_ratio']:.1f} от среднего"))
+
+    sr_ok = sr["distance_to_resistance_pct"] <= 0.5
+    checks.append(SignalCheck("S/R", sr_ok, "У сопротивления" if sr_ok else "Не у уровня"))
+
+    return checks
+
+
+def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str) -> Optional[Signal]:
+    """
+    Главная функция анализа: считает индикаторы, проверяет условия
+    и возвращает Signal, если набралось достаточно подтверждений.
+    Возвращает None, если сигнала нет (Weak или волатильность слишком низкая).
+    """
+    if len(df_raw) < 60:
+        logger.debug(f"{symbol} {timeframe}: недостаточно данных для анализа")
+        return None
+
+    df = calculate_all(df_raw)
+    last = df.iloc[-1]
+
+    if pd.isna(last["rsi"]) or pd.isna(last["macd"]) or pd.isna(last["ema_50"]):
+        return None
+
+    # Фильтр по волатильности — не даём сигналы в "мёртвом" рынке
+    if last["atr_pct"] < config.ATR_MIN_PCT:
+        logger.debug(f"{symbol} {timeframe}: волатильность слишком низкая ({last['atr_pct']:.3f}%)")
+        return None
+
+    sr = find_support_resistance(df)
+    patterns = detect_candlestick_patterns(df)
+
+    up_checks = _check_up_conditions(last, sr)
+    down_checks = _check_down_conditions(last, sr)
+
+    up_score = sum(1 for c in up_checks if c.passed)
+    down_score = sum(1 for c in down_checks if c.passed)
+
+    if up_score < config.MIN_CONFIRMATIONS_TO_SEND and down_score < config.MIN_CONFIRMATIONS_TO_SEND:
+        return None
+
+    if up_score >= down_score and up_score >= config.MIN_CONFIRMATIONS_TO_SEND:
+        direction = "UP"
+        checks = up_checks
+        score = up_score
+    elif down_score >= config.MIN_CONFIRMATIONS_TO_SEND:
+        direction = "DOWN"
+        checks = down_checks
+        score = down_score
+    else:
+        return None
+
+    total_indicators = len(checks)
+    if score >= config.STRONG_THRESHOLD:
+        strength_label = "Strong"
+    elif score >= config.MEDIUM_THRESHOLD:
+        strength_label = "Medium"
+    else:
+        return None  # Weak — не отправляем
+
+    strength_pct = round(score / total_indicators * 100)
+
+    return Signal(
+        symbol=symbol,
+        timeframe=timeframe,
+        direction=direction,
+        strength_label=strength_label,
+        strength_pct=strength_pct,
+        confirmations=score,
+        checks=checks,
+        price=float(last["close"]),
+        patterns=patterns,
+        support=sr["support"],
+        resistance=sr["resistance"],
+        volume_ratio=float(last["volume_ratio"]) if not pd.isna(last["volume_ratio"]) else 0.0,
+        atr_pct=float(last["atr_pct"]),
+    )
+
+
+def format_signal_message(signal: Signal) -> str:
+    """Форматирует сигнал в текстовое сообщение для Telegram по заданному шаблону."""
+    direction_text = "▲ ВВЕРХ (CALL)" if signal.direction == "UP" else "▼ ВНИЗ (PUT)"
+
+    filled = round(signal.strength_pct / 10)
+    bar = "█" * filled + "░" * (10 - filled)
+
+    lines = [
+        "━━━━━━━━━━━━━━━━",
+        "📊 ПРОГНОЗ",
+        "━━━━━━━━━━━━━━━━",
+        f"🪙 Пара: {signal.symbol[:-4]}/{signal.symbol[-4:]}",
+        f"⏰ Таймфрейм: {signal.timeframe}",
+        f"📈 Направление: {direction_text}",
+        f"💪 Сила: {bar} {signal.strength_pct}% ({signal.strength_label})",
+        "━━━━━━━━━━━━━━━━",
+    ]
+
+    icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯"}
+    for check in signal.checks:
+        icon = icons.get(check.name, "•")
+        mark = "✅" if check.passed else "❌"
+        lines.append(f"{icon} {check.name}: {check.detail} {mark}")
+
+    if signal.patterns:
+        lines.append(f"🕯 Паттерн: {', '.join(signal.patterns)}")
+
+    lines.append("━━━━━━━━━━━━━━━━")
+    lines.append(f"🧱 Поддержка: {signal.support} | Сопротивление: {signal.resistance}")
+
+    tf_minutes = {"1m": 3, "5m": 15, "15m": 45, "1h": 180, "4h": 720}
+    horizon = tf_minutes.get(signal.timeframe, 15)
+    lines.append(f"⏱ Следующие 3 свечи (~{horizon} мин)")
+
+    tp_range = "65-75%" if signal.strength_label == "Strong" else "50-60%"
+    lines.append(f"🎯 Тейкпрофит: ~{tp_range}")
+
+    risk = "Низкий" if signal.strength_label == "Strong" else "Средний"
+    lines.append(f"⚠️ Риск: {risk}")
+    lines.append("━━━━━━━━━━━━━━━━")
+    lines.append("⚠️ Не является финансовой рекомендацией. Торговля криптовалютой сопряжена с высоким риском.")
+
+    return "\n".join(lines)
