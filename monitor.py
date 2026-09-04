@@ -51,25 +51,77 @@ def format_spike_alert(alert: dict) -> str:
 
 async def resolve_pending_signals(session: aiohttp.ClientSession, db: Database):
     """
-    Проверяет сигналы старше 15 минут и определяет исход (win/loss)
-    сравнивая цену на момент проверки с ценой сигнала.
+    Проверяет сигналы и определяет исход (win/loss/expired) по TP/SL уровням.
+    Загружает свечи за время жизни сигнала и проверяет, какой уровень сработал раньше.
     """
-    pending = await db.get_pending_signals(older_than_minutes=15)
+    from datetime import datetime
+
+    pending = await db.get_pending_signals()
     for sig in pending:
         try:
-            df = await fetch_klines(session, sig["symbol"], "1m", exchange=config.DEFAULT_EXCHANGE, limit=1)
-            if df.empty:
-                continue
-            current_price = float(df["close"].iloc[-1])
-            entry_price = float(sig["price"])
+            # Сколько минут прошло с момента сигнала
+            created = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
+            now = datetime.utcnow()
+            elapsed_minutes = (now - created).total_seconds() / 60
 
-            moved_up = current_price > entry_price
-            outcome = "win" if (
-                (sig["direction"] == "UP" and moved_up) or
-                (sig["direction"] == "DOWN" and not moved_up)
-            ) else "loss"
+            # Если время жизни истекло — проверяем, был ли TP/SL за это время
+            expiry = sig["expiry_minutes"] or 15
+
+            # Загружаем свечи за всё время жизни сигнала
+            limit_needed = int(expay // 1) + 2  # примерно по 1 свече в минуту (1m TF)
+            if limit_needed > 500:
+                limit_needed = 500
+
+            df = await fetch_klines(session, sig["symbol"], "1m",
+                                    exchange=config.DEFAULT_EXCHANGE, limit=limit_needed)
+            if df.empty or len(df) < 2:
+                continue
+
+            entry_price = float(sig["price"])
+            direction = sig["direction"]
+            tp_price = sig.get("tp_price")
+            sl_price = sig.get("sl_price")
+
+            # Если нет TP/SL —fallback к старой логике
+            if not tp_price or not sl_price:
+                current_price = float(df["close"].iloc[-1])
+                moved_up = current_price > entry_price
+                outcome = "win" if (
+                    (direction == "UP" and moved_up) or
+                    (direction == "DOWN" and not moved_up)
+                ) else "loss"
+                await db.update_outcome(sig["id"], outcome)
+                continue
+
+            # Проверяем каждую свечу после сигнала — какой уровень сработал раньше
+            outcome = None
+            for _, candle in df.iterrows():
+                high = float(candle["high"])
+                low = float(candle["low"])
+
+                if direction == "UP":
+                    if high >= tp_price:
+                        outcome = "win"
+                        break
+                    if low <= sl_price:
+                        outcome = "loss"
+                        break
+                else:  # DOWN
+                    if low <= tp_price:
+                        outcome = "win"
+                        break
+                    if high >= sl_price:
+                        outcome = "loss"
+                        break
+
+            # Если время вышло, а TP/SL не сработали —expired
+            if outcome is None:
+                if elapsed_minutes >= expiry:
+                    outcome = "expired"
+                else:
+                    continue  # Ещё рано проверять, ждём
 
             await db.update_outcome(sig["id"], outcome)
-            logger.info(f"Сигнал #{sig['id']} ({sig['symbol']} {sig['direction']}) закрыт как {outcome}")
+            logger.info(f"Сигнал #{sig['id']} ({sig['symbol']} {direction}) → {outcome}")
         except Exception as e:
             logger.error(f"Ошибка определения исхода сигнала #{sig['id']}: {e}")
