@@ -64,6 +64,11 @@ MEDIUM_THRESHOLD = 3           # 3-4 индикатора = Medium
 # Rate limiting: не чаще одного сигнала на пару за X минут
 SIGNAL_COOLDOWN_MINUTES = 30
 
+# --- TP/SL на основе ATR ---
+TP_ATR_MULTIPLIER = 2.0    # Take Profit = entry ± ATR * 2
+SL_ATR_MULTIPLIER = 1.5    # Stop Loss  = entry ∓ ATR * 1.5
+SIGNAL_EXPIRY_CANDLES = 3  # время жизни сигнала = timeframe * N свечей
+
 # Список бирж и их REST-эндпоинтов для получения klines/тикеров
 EXCHANGES = {
     "binance": {
