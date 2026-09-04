@@ -185,6 +185,48 @@ async def cmd_stats(message: Message, db: Database):
     await message.answer(text)
 
 
+@router.message(Command("train"))
+async def cmd_train(message: Message, db: Database):
+    """Обучение ML-модели на исторических данных (только для админа)."""
+    from ml import train_model, MODEL_PATH
+
+    await message.answer("🔄 Начинаю обучение ML-модели...")
+
+    # Получаем историю сигналов с исходами
+    from datetime import datetime, timedelta
+    cutoff = (datetime.utcnow() - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
+    cursor = await db._conn.execute(
+        """SELECT symbol, timeframe, direction, strength_label, strength_pct,
+                  price, created_at, outcome
+           FROM signals_history
+           WHERE outcome != 'pending' AND created_at >= ?""",
+        (cutoff,),
+    )
+    rows = await cursor.fetchall()
+    cols = ["symbol", "timeframe", "direction", "strength_label", "strength_pct",
+            "price", "created_at", "outcome"]
+    import pandas as pd
+    df = pd.DataFrame([dict(zip(cols, r)) for r in rows])
+
+    if len(df) < 100:
+        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(df)} сигналов (нужно минимум 100)")
+        return
+
+    # Запускаем обучение
+    result = train_model(df, min_samples=100)
+    if result:
+        await message.answer(
+            f"✅ ML модель обучена!\n\n"
+            f"📊 Модель: {result['model_name']}\n"
+            f"🎯 Accuracy: {result['accuracy']:.0%}\n"
+            f"  RandomForest: {result['rf_accuracy']:.0%}\n"
+            f"  GradientBoosting: {result['gb_accuracy']:.0%}\n"
+            f"📁 Сохранена: {MODEL_PATH}"
+        )
+    else:
+        await message.answer("❌ Не удалось обучить модель. Проверьте логи.")
+
+
 def build_dispatcher() -> Dispatcher:
     dp = Dispatcher()
     dp.include_router(router)
