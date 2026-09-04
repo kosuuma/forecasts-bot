@@ -161,10 +161,10 @@ async def cmd_stats(message: Message, db: Database):
     text = (
         "📊 Статистика\n\n"
         "🗓 За неделю:\n"
-        f"  Сигналов: {week['total_signals']} | Win: {week['wins']} | Loss: {week['losses']}\n"
+        f"  Сигналов: {week['total_signals']} | ✅ Win: {week['wins']} | ❌ Loss: {week['losses']} | ⏰ Expired: {week['expired']}\n"
         f"  Винрейт: {week['winrate']}%\n\n"
         "🗓 За месяц:\n"
-        f"  Сигналов: {month['total_signals']} | Win: {month['wins']} | Loss: {month['losses']}\n"
+        f"  Сигналов: {month['total_signals']} | ✅ Win: {month['wins']} | ❌ Loss: {month['losses']} | ⏰ Expired: {month['expired']}\n"
         f"  Винрейт: {month['winrate']}%\n"
     )
 
