@@ -9,8 +9,12 @@ import pandas as pd
 
 import config
 from indicators import calculate_all, find_support_resistance, detect_candlestick_patterns
+from ml import load_model, predict as ml_predict
 
 logger = logging.getLogger("signals")
+
+# Загружаем ML-модель при старте
+_ml_model = None
 
 
 def check_higher_tf_alignment(df_higher: pd.DataFrame, direction: str) -> tuple:
