@@ -187,6 +187,15 @@ def format_signal_message(signal: Signal) -> str:
     filled = round(signal.strength_pct / 10)
     bar = "█" * filled + "░" * (10 - filled)
 
+    # Risk/Reward ratio
+    risk_reward = "—"
+    if signal.sl_price and signal.tp_price and signal.price:
+        potential_loss = abs(signal.price - signal.sl_price)
+        potential_profit = abs(signal.tp_price - signal.price)
+        if potential_loss > 0:
+            rr = potential_profit / potential_loss
+            risk_reward = f"1:{rr:.1f}"
+
     lines = [
         "━━━━━━━━━━━━━━━━",
         "📊 ПРОГНОЗ",
@@ -210,12 +219,11 @@ def format_signal_message(signal: Signal) -> str:
     lines.append("━━━━━━━━━━━━━━━━")
     lines.append(f"🧱 Поддержка: {signal.support} | Сопротивление: {signal.resistance}")
 
-    tf_minutes = {"1m": 3, "5m": 15, "15m": 45, "1h": 180, "4h": 720}
-    horizon = tf_minutes.get(signal.timeframe, 15)
-    lines.append(f"⏱ Следующие 3 свечи (~{horizon} мин)")
-
-    tp_range = "65-75%" if signal.strength_label == "Strong" else "50-60%"
-    lines.append(f"🎯 Тейкпрофит: ~{tp_range}")
+    lines.append(f"💰 Цена входа: {signal.price}")
+    lines.append(f"🎯 Тейкпрофит: {signal.tp_price}")
+    lines.append(f"🛑 Стоп-лосс: {signal.sl_price}")
+    lines.append(f"📐 Risk/Reward: {risk_reward}")
+    lines.append(f"⏱ Время жизни: {signal.expiry_minutes} мин")
 
     risk = "Низкий" if signal.strength_label == "Strong" else "Средний"
     lines.append(f"⚠️ Риск: {risk}")
