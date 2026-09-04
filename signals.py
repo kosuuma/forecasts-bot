@@ -31,6 +31,10 @@ class Signal:
     confirmations: int
     checks: list = field(default_factory=list)
     price: float = 0.0
+    tp_price: float = 0.0
+    sl_price: float = 0.0
+    atr: float = 0.0
+    expiry_minutes: int = 15
     patterns: list = field(default_factory=list)
     support: float = 0.0
     resistance: float = 0.0

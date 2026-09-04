@@ -198,6 +198,7 @@ class Database:
         counts = {outcome: cnt for outcome, cnt in rows}
         wins = counts.get("win", 0)
         losses = counts.get("loss", 0)
+        expired = counts.get("expired", 0)
         total = wins + losses
         winrate = round(wins / total * 100, 1) if total else 0.0
 
@@ -211,6 +212,7 @@ class Database:
             "total_signals": total_signals,
             "wins": wins,
             "losses": losses,
+            "expired": expired,
             "winrate": winrate,
         }
 
