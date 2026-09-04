@@ -75,6 +75,7 @@ class Signal:
     expiry_minutes: int = 15
     higher_tf_trend: str = "—"  # бычий / медвежий / боковой / —
     higher_tf_aligned: bool = False
+    ml_confidence: float = 0.0  # вероятность win от ML (0-1)
     patterns: list = field(default_factory=list)
     support: float = 0.0
     resistance: float = 0.0
