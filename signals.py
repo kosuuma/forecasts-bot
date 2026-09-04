@@ -118,6 +118,24 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
     up_checks = _check_up_conditions(last, sr)
     down_checks = _check_down_conditions(last, sr)
 
+    # --- Funding Rate Check ---
+    funding_check = None
+    if funding_rate is not None:
+        if funding_rate < config.FUNDING_RATE_BULLISH:
+            # Шортит рынок → бычий сигнал
+            funding_check = SignalCheck("Funding", True,
+                f"{funding_rate*100:.3f}% (бычий)")
+        elif funding_rate > config.FUNDING_RATE_BEARISH:
+            # Лонгит рынок → медвежий сигнал
+            funding_check = SignalCheck("Funding", True,
+                f"{funding_rate*100:.3f}% (медвежий)")
+        else:
+            funding_check = SignalCheck("Funding", False,
+                f"{funding_rate*100:.3f}% (нейтральный)")
+
+        up_checks.append(funding_check)
+        down_checks.append(funding_check)
+
     up_score = sum(1 for c in up_checks if c.passed)
     down_score = sum(1 for c in down_checks if c.passed)
 
