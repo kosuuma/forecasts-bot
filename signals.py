@@ -91,7 +91,7 @@ def _check_down_conditions(last: pd.Series, sr: dict) -> list:
 
 
 def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
-            funding_rate: float = None) -> Optional[Signal]:
+            funding_rate: float = None, orderbook: dict = None) -> Optional[Signal]:
     """
     Главная функция анализа: считает индикаторы, проверяет условия
     и возвращает Signal, если набралось достаточно подтверждений.

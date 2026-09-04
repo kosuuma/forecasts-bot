@@ -196,3 +196,61 @@ async def fetch_funding_rate(
         logger.warning(f"Не удалось получить funding rate {symbol} на {exchange}: {e}")
         return None
     return None
+
+
+async def fetch_orderbook_depth(
+    session: aiohttp.ClientSession, symbol: str, exchange: str = "binance",
+    limit: int = 20
+) -> Optional[dict]:
+    """
+    Получает стакан (orderbook) и считает bid/ask ratio, spread, imbalance.
+    Возвращает dict с метриками или None при ошибке.
+    """
+    url = EXCHANGES[exchange]["depth_url"]
+    try:
+        if exchange == "binance":
+            data = await _get_json(session, url, {"symbol": symbol, "limit": limit})
+            bids = [(float(p), float(q)) for p, q in data.get("bids", [])]
+            asks = [(float(p), float(q)) for p, q in data.get("asks", [])]
+        elif exchange == "bybit":
+            data = await _get_json(session, url, {"category": "spot", "symbol": symbol, "limit": limit})
+            result = data.get("result", {})
+            bids = [(float(b[0]), float(b[1])) for b in result.get("b", [])]
+            asks = [(float(a[0]), float(a[1])) for a in result.get("a", [])]
+        elif exchange == "okx":
+            okx_symbol = symbol.replace("USDT", "-USDT") if "-" not in symbol else symbol
+            data = await _get_json(session, url, {"instId": okx_symbol, "sz": str(limit)})
+            book = data.get("data", [{}])[0]
+            bids = [(float(b[0]), float(b[1])) for b in book.get("bids", [])]
+            asks = [(float(a[0]), float(a[1])) for a in book.get("asks", [])]
+        else:
+            return None
+
+        if not bids or not asks:
+            return None
+
+        # Метрики стакана
+        total_bid_volume = sum(q for _, q in bids)
+        total_ask_volume = sum(q for _, q in asks)
+        total_volume = total_bid_volume + total_ask_volume
+
+        best_bid = bids[0][0]
+        best_ask = asks[0][0]
+        spread = best_ask - best_bid
+        spread_pct = (spread / best_ask * 100) if best_ask else 0
+
+        bid_ask_ratio = total_bid_volume / total_ask_volume if total_ask_volume > 0 else 999
+        imbalance = ((total_bid_volume - total_ask_volume) / total_volume * 100) if total_volume > 0 else 0
+
+        return {
+            "bid_ask_ratio": round(bid_ask_ratio, 3),
+            "spread_pct": round(spread_pct, 4),
+            "imbalance": round(imbalance, 2),  # положительный = больше bids
+            "total_bid_volume": round(total_bid_volume, 4),
+            "total_ask_volume": round(total_ask_volume, 4),
+            "best_bid": best_bid,
+            "best_ask": best_ask,
+        }
+    except (ExchangeError, KeyError, IndexError, ValueError) as e:
+        logger.warning(f"Не удалось получить orderbook {symbol} на {exchange}: {e}")
+        return None
