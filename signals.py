@@ -226,7 +226,7 @@ def format_signal_message(signal: Signal) -> str:
         "━━━━━━━━━━━━━━━━",
     ]
 
-    icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯"}
+    icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯", "Funding": "💹"}
     for check in signal.checks:
         icon = icons.get(check.name, "•")
         mark = "✅" if check.passed else "❌"
