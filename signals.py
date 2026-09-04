@@ -144,6 +144,21 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str) -> Optional[Signa
 
     strength_pct = round(score / total_indicators * 100)
 
+    # --- Расчёт TP/SL на основе ATR ---
+    atr_val = float(last["atr"])
+    entry_price = float(last["close"])
+
+    tf_minutes_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60, "4h": 240}
+    tf_minutes = tf_minutes_map.get(timeframe, 5)
+    expiry_minutes = tf_minutes * config.SIGNAL_EXPIRY_CANDLES
+
+    if direction == "UP":
+        tp_price = entry_price + atr_val * config.TP_ATR_MULTIPLIER
+        sl_price = entry_price - atr_val * config.SL_ATR_MULTIPLIER
+    else:
+        tp_price = entry_price - atr_val * config.TP_ATR_MULTIPLIER
+        sl_price = entry_price + atr_val * config.SL_ATR_MULTIPLIER
+
     return Signal(
         symbol=symbol,
         timeframe=timeframe,
@@ -152,7 +167,11 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str) -> Optional[Signa
         strength_pct=strength_pct,
         confirmations=score,
         checks=checks,
-        price=float(last["close"]),
+        price=entry_price,
+        tp_price=round(tp_price, 8),
+        sl_price=round(sl_price, 8),
+        atr=round(atr_val, 8),
+        expiry_minutes=expiry_minutes,
         patterns=patterns,
         support=sr["support"],
         resistance=sr["resistance"],
