@@ -174,6 +174,14 @@ async def cmd_stats(message: Message, db: Database):
         for p in by_pair[:10]:
             text += f"  {p['symbol'][:-4]}/{p['symbol'][-4:]}: {p['winrate']}% ({p['wins']}W/{p['losses']}L)\n"
 
+    # ML модель
+    from ml import load_model
+    ml_model = load_model()
+    if ml_model:
+        text += f"\n🤖 ML модель: {ml_model['model_name']} (accuracy: {ml_model['accuracy']:.0%})\n"
+    else:
+        text += "\n🤖 ML модель: не обучена\n"
+
     await message.answer(text)
 
 
