@@ -67,6 +67,9 @@ async def scan_and_notify(bot: Bot):
             except Exception as e:
                 logger.debug(f"Не удалось получить orderbook для {symbol}: {e}")
 
+            # Кэш для данных старшего TF (чтобы не загружать повторно)
+            higher_tf_cache = {}
+
             for tf in needed_timeframes:
                 try:
                     last_signal_time = await db.get_last_signal_time(symbol)
@@ -76,7 +79,23 @@ async def scan_and_notify(bot: Bot):
                         continue  # rate limit: слишком рано для нового сигнала по этой паре
 
                     df = await fetch_klines(session, symbol, tf, exchange=config.DEFAULT_EXCHANGE, limit=200)
-                    signal = analyze(df, symbol, tf, funding_rate=funding_rate, orderbook=orderbook)
+
+                    # Загружаем данные старшего TF для multi-timeframe анализа
+                    higher_tf = config.TF_HIERARCHY.get(tf)
+                    df_higher = None
+                    if higher_tf:
+                        if higher_tf in higher_tf_cache:
+                            df_higher = higher_tf_cache[higher_tf]
+                        else:
+                            try:
+                                df_higher = await fetch_klines(session, symbol, higher_tf,
+                                                               exchange=config.DEFAULT_EXCHANGE, limit=200)
+                                higher_tf_cache[higher_tf] = df_higher
+                            except Exception as e:
+                                logger.debug(f"Не удалось получить {higher_tf} для {symbol}: {e}")
+
+                    signal = analyze(df, symbol, tf, funding_rate=funding_rate, orderbook=orderbook,
+                                     df_higher_tf=df_higher)
                     if not signal:
                         continue
 
