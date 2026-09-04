@@ -220,6 +220,18 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
     else:
         return None  # Weak — не отправляем
 
+    # --- Multi-Timeframe: проверка тренда на старшем TF ---
+    higher_tf_trend = "—"
+    higher_tf_aligned = False
+    higher_tf = config.TF_HIERARCHY.get(timeframe)
+    if higher_tf and df_higher_tf is not None:
+        higher_tf_trend, higher_tf_aligned = check_higher_tf_alignment(df_higher_tf, direction)
+        # Если старший TF противоречит — снижаем силу сигнала
+        if not higher_tf_aligned and higher_tf_trend != "—":
+            strength_label = "Medium" if strength_label == "Strong" else None
+            if strength_label is None:
+                return None  # Слабый сигнал из-за конфликта таймфреймов
+
     strength_pct = round(score / total_indicators * 100)
 
     # --- Расчёт TP/SL на основе ATR ---
