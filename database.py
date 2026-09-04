@@ -167,20 +167,23 @@ class Database:
 
     async def update_outcome(self, signal_id: int, outcome: str):
         await self._conn.execute(
-            "UPDATE signals_history SET outcome = ? WHERE id = ?", (outcome, signal_id)
+            "UPDATE signals_history SET outcome = ?, resolved_at = datetime('now') WHERE id = ?",
+            (outcome, signal_id),
         )
         await self._conn.commit()
 
-    async def get_pending_signals(self, older_than_minutes: int = 15) -> list:
-        """Сигналы, ожидающие определения исхода (win/loss) для подсчёта винрейта."""
-        cutoff = (datetime.utcnow() - timedelta(minutes=older_than_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+    async def get_pending_signals(self) -> list:
+        """Сигналы, ожидающие определения исхода (win/loss/expired)."""
         cursor = await self._conn.execute(
-            "SELECT id, symbol, direction, price, created_at FROM signals_history "
-            "WHERE outcome = 'pending' AND created_at <= ?",
-            (cutoff,),
+            """SELECT id, symbol, direction, price, tp_price, sl_price,
+                      expiry_minutes, created_at
+               FROM signals_history
+               WHERE outcome = 'pending'""",
         )
         rows = await cursor.fetchall()
-        return [{"id": r[0], "symbol": r[1], "direction": r[2], "price": r[3], "created_at": r[4]} for r in rows]
+        return [{"id": r[0], "symbol": r[1], "direction": r[2], "price": r[3],
+                 "tp_price": r[4], "sl_price": r[5], "expiry_minutes": r[6],
+                 "created_at": r[7]} for r in rows]
 
     # --- Статистика ---
     async def get_stats(self, days: int = 7) -> dict:
