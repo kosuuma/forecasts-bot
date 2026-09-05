@@ -144,7 +144,7 @@ async def scan_and_notify(bot: Bot):
             for tf in needed_timeframes:
                 try:
                     last_signal_time = await db.get_last_signal_time(symbol)
-                    if last_signal_time and datetime.utcnow() - last_signal_time < timedelta(
+                    if last_signal_time and datetime.now(timezone.utc).replace(tzinfo=None) - last_signal_time < timedelta(
                         minutes=config.SIGNAL_COOLDOWN_MINUTES
                     ):
                         continue  # rate limit: слишком рано для нового сигнала по этой паре

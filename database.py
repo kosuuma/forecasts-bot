@@ -179,7 +179,7 @@ class Database:
             d = dict(zip(cols, r))
             # Конвертируем UTC в местное время (Москва UTC+3)
             if d["created_at"]:
-                from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
                 utc_time = datetime.strptime(d["created_at"], "%Y-%m-%d %H:%M:%S")
                 local_time = utc_time + timedelta(hours=3)
                 d["created_at"] = local_time.strftime("%d.%m %H:%M")
