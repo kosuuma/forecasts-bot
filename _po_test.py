@@ -9,7 +9,7 @@ ssid = input("> ").strip()
 
 from pocketoptionapi import PocketOption
 from pocketoptionapi.ws.client import WebsocketClient
-from pocketoptionapi.ws import global_value
+from pocketoptionapi.ws.client import global_value
 
 def patched_build(self):
     return ssid
