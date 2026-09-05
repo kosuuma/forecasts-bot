@@ -82,7 +82,7 @@ STRONG_THRESHOLD = 4           # 4-6 индикаторов = Strong
 MEDIUM_THRESHOLD = 2           # 2-3 индикатора = Medium
 
 # Rate limiting: не чаще одного сигнала на пару за X минут
-SIGNAL_COOLDOWN_MINUTES = 30
+SIGNAL_COOLDOWN_MINUTES = 5
 
 # --- TP/SL на основе ATR ---
 TP_ATR_MULTIPLIER = 2.0    # Take Profit = entry ± ATR * 2
