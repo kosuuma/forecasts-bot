@@ -115,6 +115,8 @@ async def scan_and_notify(bot: Bot):
         except Exception as e:
             logger.debug(f"Не удалось получить Fear & Greed: {e}")
 
+        all_signals = []
+
         for symbol in pairs:
             # Получаем funding rate, orderbook, long/short, liquidations
             funding_rate = None
