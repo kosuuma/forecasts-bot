@@ -165,9 +165,10 @@ async def cmd_settings(message: Message, db: Database):
 @router.callback_query(F.data.startswith("set_tf:"))
 async def cb_set_timeframe(query: CallbackQuery, db: Database):
     tf = query.data.split(":", 1)[1]
-    await db.update_settings(query.from_user.id, timeframe=tf)
+    chat_id = query.message.chat.id
+    await db.update_settings(chat_id, timeframe=tf)
     await query.answer(f"Таймфрейм установлен: {tf}")
-    settings = await db.get_settings(query.from_user.id)
+    settings = await db.get_settings(chat_id)
     await query.message.edit_reply_markup(
         reply_markup=settings_keyboard(
             settings["timeframe"],
@@ -180,9 +181,10 @@ async def cb_set_timeframe(query: CallbackQuery, db: Database):
 @router.callback_query(F.data.startswith("set_conf:"))
 async def cb_set_confidence(query: CallbackQuery, db: Database):
     conf = int(query.data.split(":", 1)[1])
-    await db.update_settings(query.from_user.id, min_confidence=conf)
+    chat_id = query.message.chat.id
+    await db.update_settings(chat_id, min_confidence=conf)
     await query.answer(f"Минимальная уверенность: {conf}%")
-    settings = await db.get_settings(query.from_user.id)
+    settings = await db.get_settings(chat_id)
     await query.message.edit_reply_markup(
         reply_markup=settings_keyboard(
             settings["timeframe"],
@@ -194,14 +196,15 @@ async def cb_set_confidence(query: CallbackQuery, db: Database):
 
 @router.callback_query(F.data == "toggle_sub")
 async def cb_toggle_subscription(query: CallbackQuery, db: Database):
-    settings = await db.get_settings(query.from_user.id)
+    chat_id = query.message.chat.id
+    settings = await db.get_settings(chat_id)
     if settings["subscribed"]:
-        await db.unsubscribe(query.from_user.id)
+        await db.unsubscribe(chat_id)
         await query.answer("🔕 Подписка отключена")
     else:
-        await db.subscribe(query.from_user.id)
+        await db.subscribe(chat_id)
         await query.answer("🔔 Подписка включена")
-    settings = await db.get_settings(query.from_user.id)
+    settings = await db.get_settings(chat_id)
     await query.message.edit_reply_markup(
         reply_markup=settings_keyboard(
             settings["timeframe"],
