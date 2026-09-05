@@ -1,0 +1,14 @@
+.git
+__pycache__
+*.pyc
+venv
+.venv
+.env
+*.db
+*.log
+*.pkl
+autosave.py
+start.bat
+stop.bat
+.gitignore
+README.md
