@@ -129,7 +129,7 @@ if ok:
         end_time = int((server_time // 60) * 60)
         idx = int(time.time() * 100)
         req = {"asset": "EURUSD_otc", "index": idx, "offset": 200, "period": 60, "time": end_time}
-        raw_msg = f'42["getCandles",["loadHistoryPeriod",{json.dumps(req)}]]'
+        raw_msg = f'42["loadHistoryPeriod",{json.dumps(req)}]'
 
         ws_raw = api.api.websocket.websocket
         print(f"Sending getCandles (time={end_time})...")
