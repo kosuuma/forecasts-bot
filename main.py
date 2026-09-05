@@ -171,22 +171,9 @@ async def scan_and_notify(bot: Bot):
                     if not signal:
                         continue
 
-                    logger.info(f"✅ СИГНАЛ: {signal.symbol} {signal.timeframe} {signal.direction} {signal.strength_pct}% (id={signal.strength_label})")
+                    logger.info(f"✅ СИГНАЛ: {signal.symbol} {signal.timeframe} {signal.direction} {signal.strength_pct}% ({signal.strength_label})")
+                    all_signals.append(signal)
                     await db.save_signal(signal)
-                    message_text = format_signal_message(signal)
-
-                    for sub in subscribers:
-                        if sub["timeframe"] != tf:
-                            continue
-                        if signal.strength_pct < sub["min_confidence"]:
-                            continue
-                        try:
-                            await bot.send_message(sub["chat_id"], message_text)
-                        except Exception as e:
-                            logger.error(f"Не удалось отправить сигнал пользователю {sub['chat_id']}: {e}")
-                            if "Forbidden" in str(e):
-                                await db.unsubscribe(sub["chat_id"])
-                                logger.info(f"Автоотписка {sub['chat_id']}: бот заблокирован")
 
                 except Exception as e:
                     logger.error(f"Ошибка анализа {symbol} [{tf}]: {e}")
