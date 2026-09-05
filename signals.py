@@ -133,7 +133,9 @@ def _check_down_conditions(last: pd.Series, sr: dict) -> list:
 
 def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
             funding_rate: float = None, orderbook: dict = None,
-            df_higher_tf: pd.DataFrame = None) -> Optional[Signal]:
+            df_higher_tf: pd.DataFrame = None,
+            fear_greed: dict = None, long_short: dict = None,
+            liquidations: dict = None) -> Optional[Signal]:
     """
     Главная функция анализа: считает индикаторы, проверяет условия
     и возвращает Signal, если набралось достаточно подтверждений.
