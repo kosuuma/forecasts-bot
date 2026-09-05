@@ -79,7 +79,7 @@ PRICE_SPIKE_PCT = 3.0
 # Всего проверяется 6 условий: RSI, MACD, BB, EMA, Volume, S/R
 MIN_CONFIRMATIONS_TO_SEND = 2  # минимум 2 индикатора для сигнала
 STRONG_THRESHOLD = 5           # 5-6 индикаторов = Strong
-MEDIUM_THRESHOLD = 3           # 3-4 индикатора = Medium
+MEDIUM_THRESHOLD = 2           # 2-3 индикатора = Medium
 
 # Rate limiting: не чаще одного сигнала на пару за X минут
 SIGNAL_COOLDOWN_MINUTES = 30
