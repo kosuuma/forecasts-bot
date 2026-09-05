@@ -247,37 +247,100 @@ async def cmd_signals(message: Message, db: Database):
 
 
 # ---------------------------------------------------------------------------
-# /stats — винрейт за неделю/месяц
+# /stats — статистика с выбором периода
 # ---------------------------------------------------------------------------
-@router.message(Command("stats"))
-async def cmd_stats(message: Message, db: Database):
-    week = await db.get_stats(days=7)
-    month = await db.get_stats(days=30)
+def stats_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📅 День", callback_data="stats:1")
+    builder.button(text="📅 Неделя", callback_data="stats:7")
+    builder.button(text="📅 Месяц", callback_data="stats:30")
+    builder.button(text="📅 Всё время", callback_data="stats:999")
+    builder.adjust(4)
+    return builder.as_markup()
 
-    text = (
-        "📊 Статистика\n\n"
-        "🗓 За неделю:\n"
-        f"  Сигналов: {week['total_signals']} | ✅ Win: {week['wins']} | ❌ Loss: {week['losses']} | ⏰ Expired: {week['expired']}\n"
-        f"  Винрейт: {week['winrate']}%\n\n"
-        "🗓 За месяц:\n"
-        f"  Сигналов: {month['total_signals']} | ✅ Win: {month['wins']} | ❌ Loss: {month['losses']} | ⏰ Expired: {month['expired']}\n"
-        f"  Винрейт: {month['winrate']}%\n"
-    )
 
-    by_pair = await db.get_stats_by_pair(days=7)
+def winrate_bar(winrate: float) -> str:
+    """Визуальный бар винрейта."""
+    filled = round(winrate / 5)
+    empty = 20 - filled
+    if winrate >= 70:
+        color = "🟩"
+    elif winrate >= 50:
+        color = "🟨"
+    else:
+        color = "🟥"
+    return color * filled + "⬜️" * empty
+
+
+async def _build_stats_text(db: Database, days: int) -> str:
+    stats = await db.get_stats(days=days)
+    streak = await db.get_streak(days=days)
+    by_pair = await db.get_stats_by_pair(days=days)
+    by_tf = await db.get_stats_by_timeframe(days=days)
+
+    period_name = {1: "День", 7: "Неделя", 30: "Месяц", 999: "Всё время"}.get(days, f"{days}д")
+
+    # Стрик
+    streak_text = "—"
+    if streak["count"] > 0:
+        if streak["type"] == "win":
+            streak_text = f"🔥 {streak['count']} побед подряд"
+        else:
+            streak_text = f"💔 {streak['count']} поражений подряд"
+
+    # Бар винрейта
+    bar = winrate_bar(stats["winrate"])
+
+    lines = [
+        f"📊 Статистика — {period_name}\n",
+        f"Winrate: {stats['winrate']}%",
+        bar,
+        "",
+        f"📈 Всего сигналов: {stats['total_signals']}",
+        f"✅ Побед: {stats['wins']}",
+        f"❌ Поражений: {stats['losses']}",
+        f"⏰ Истекло: {stats['expired']}",
+        f"🎲 Серия: {streak_text}",
+    ]
+
+    # По таймфреймам
+    if by_tf:
+        lines.append("\n⏱ По таймфреймам:")
+        for t in by_tf[:5]:
+            emoji = "🟩" if t["winrate"] >= 60 else "🟨" if t["winrate"] >= 50 else "🟥"
+            lines.append(f"  {emoji} {t['timeframe']}: {t['winrate']}% ({t['wins']}W/{t['losses']}L)")
+
+    # Топ пар
     if by_pair:
-        text += "\n📈 По парам (за неделю):\n"
-        for p in by_pair[:10]:
-            text += f"  {p['symbol'][:-4]}/{p['symbol'][-4:]}: {p['winrate']}% ({p['wins']}W/{p['losses']}L)\n"
+        lines.append("\n🏆 Топ пар:")
+        sorted_pairs = sorted(by_pair, key=lambda x: x["winrate"], reverse=True)
+        for p in sorted_pairs[:5]:
+            emoji = "🥇" if p == sorted_pairs[0] else "🥈" if p == sorted_pairs[1] else "🥉" if p == sorted_pairs[2] else "  "
+            lines.append(f"  {emoji} {p['symbol'][:-4]}/{p['symbol'][-4:]}: {p['winrate']}% ({p['wins']}W/{p['losses']}L)")
 
+    # ML модель
     from ml import load_model
     ml_model = load_model()
     if ml_model:
-        text += f"\n🤖 ML модель: {ml_model['model_name']} (accuracy: {ml_model['accuracy']:.0%})\n"
+        lines.append(f"\n🤖 ML: {ml_model['model_name']} ({ml_model['accuracy']:.0%})")
     else:
-        text += "\n🤖 ML модель: не обучена\n"
+        lines.append("\n🤖 ML: не обучена")
 
-    await message.answer(text, reply_markup=main_keyboard())
+    return "\n".join(lines)
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message, db: Database):
+    text = await _build_stats_text(db, days=7)
+    await message.answer(text, reply_markup=stats_keyboard())
+
+
+@router.callback_query(F.data.startswith("stats:"))
+async def cb_stats(query: CallbackQuery, db: Database):
+    days = int(query.data.split(":")[1])
+    text = await _build_stats_text(db, days=days)
+    await query.message.edit_text(text, reply_markup=stats_keyboard())
+    await query.answer()
 
 
 @router.message(Command("train"))
