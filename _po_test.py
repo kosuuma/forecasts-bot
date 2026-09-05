@@ -1,4 +1,4 @@
-import sys, time, os, asyncio, json
+import sys, time, os, asyncio, json, threading
 sys.stdout.reconfigure(encoding="utf-8")
 
 os.environ["NO_PROXY"] = "demo-api-eu.po.market,api-eu.po.market,try-demo-eu.po.market"
@@ -29,22 +29,19 @@ async def patched_connect(self, *a, **kw):
     return await orig_connect(self, *a, **kw)
 WebsocketClient.connect = patched_connect
 
-candles_event = asyncio.Event()
-candles_result = None
-pending_binary_type = None
+# Use threading.Event (works across threads)
+candles_ready = threading.Event()
+candles_result = [None]
+pending_binary_type = [None]
 
 orig_on_message = WebsocketClient.on_message
 async def patched_on_message(self, message):
-    global candles_result, pending_binary_type
-
     if isinstance(message, str):
         if message.startswith("451-["):
             try:
                 jp = message.split("-", 1)[1]
                 parsed = json.loads(jp)
-                pending_binary_type = parsed[0]
-                if pending_binary_type == "loadHistoryPeriodFast":
-                    print("  451: loadHistoryPeriodFast placeholder")
+                pending_binary_type[0] = parsed[0]
             except:
                 pass
             return
@@ -58,8 +55,8 @@ async def patched_on_message(self, message):
         except:
             return
 
-    msg_type = pending_binary_type
-    pending_binary_type = None
+    msg_type = pending_binary_type[0]
+    pending_binary_type[0] = None
 
     if msg_type is None:
         return
@@ -72,8 +69,8 @@ async def patched_on_message(self, message):
         return
 
     if msg_type == "loadHistoryPeriodFast":
-        candles_result = actual
-        candles_event.set()
+        candles_result[0] = actual
+        candles_ready.set()
         if isinstance(actual, dict):
             self.api.history_data = actual
             self.api._history_data_event.set()
@@ -124,45 +121,31 @@ if ok:
         api.subscribe("EURUSD_otc", period=60)
         time.sleep(2)
 
-        # Send getCandles via raw websocket (bypass library's broken run_until_complete)
+        # Send getCandles directly via websocket
         server_time = api.api.time_sync.get_server_native_time()
         end_time = int((server_time // 60) * 60)
         idx = int(time.time() * 100)
         req = {"asset": "EURUSD_otc", "index": idx, "offset": 200, "period": 60, "time": end_time}
-        msg = f'42["getCandles",["loadHistoryPeriod",{json.dumps(req)}]]'
+        raw_msg = f'42["getCandles",["loadHistoryPeriod",{json.dumps(req)}]]'
 
-        ws_client = api.api.websocket
-        ws_raw = ws_client.websocket  # the actual websockets connection
-        print(f"Sending getCandles via raw ws (time={end_time})...")
+        ws_raw = api.api.websocket.websocket
+        print(f"Sending getCandles (time={end_time})...")
 
-        # Send via the underlying websocket
-        try:
-            await_coro = ws_raw.send(msg)
-            loop = asyncio.get_event_loop()
-            loop.create_task(await_coro)
-            print("Sent!")
-        except Exception as e:
-            print(f"Send error: {e}")
-            # Fallback: try via send_message
-            try:
-                loop = asyncio.get_event_loop()
-                loop.create_task(ws_client.send_message(msg))
-                print("Sent via send_message!")
-            except Exception as e2:
-                print(f"Fallback error: {e2}")
+        # Send raw message using the websocket's send method (already in the right loop)
+        loop = asyncio.get_event_loop()
+        loop.create_task(ws_raw.send(raw_msg))
+        print("Sent!")
 
+        # Wait using threading.Event (cross-thread safe)
         print("Waiting for candles...")
-        try:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(asyncio.wait_for(candles_event.wait(), timeout=15))
-            if candles_result and "data" in candles_result:
-                data = candles_result["data"]
-                print(f"\n=== GOT {len(data)} CANDLES ===")
-                for c in data[-5:]:
-                    print(c)
-            else:
-                print("No data")
-        except asyncio.TimeoutError:
-            print("Timeout")
+        candles_ready.wait(timeout=15)
+
+        if candles_result[0] and isinstance(candles_result[0], dict) and "data" in candles_result[0]:
+            data = candles_result[0]["data"]
+            print(f"\n=== GOT {len(data)} CANDLES ===")
+            for c in data[-5:]:
+                print(c)
+        else:
+            print("No candle data received")
 
     api.disconnect_websocket()
