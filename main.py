@@ -192,7 +192,11 @@ async def scan_and_notify(bot: Bot):
             spikes = await check_price_spikes(session, pairs)
             for alert in spikes:
                 text = format_spike_alert(alert)
-                for sub in subscribers:
+                # Отправляем только тем, у кого включены алерты цены
+                all_subs = await db.get_active_subscribers_with_alerts()
+                for sub in all_subs:
+                    if not sub.get("price_alerts", True):
+                        continue
                     try:
                         await bot.send_message(sub["chat_id"], text)
                     except Exception as e:
