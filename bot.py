@@ -117,7 +117,7 @@ async def cmd_unsubscribe(message: Message, db: Database):
 # ---------------------------------------------------------------------------
 # /settings
 # ---------------------------------------------------------------------------
-def settings_keyboard(current_tf: str, current_conf: int, subscribed: bool) -> InlineKeyboardMarkup:
+def settings_keyboard(current_tf: str, current_conf: int, subscribed: bool, price_alerts: bool) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     # Таймфреймы
@@ -133,10 +133,14 @@ def settings_keyboard(current_tf: str, current_conf: int, subscribed: bool) -> I
         conf_builder.button(text=label, callback_data=f"set_conf:{conf}")
     conf_builder.adjust(4)
 
-    # Кнопка подписки — toggle
+    # Кнопки toggle
     sub_builder = InlineKeyboardBuilder()
     sub_label = "🔕 Отписаться" if subscribed else "🔔 Подписаться"
     sub_builder.button(text=sub_label, callback_data="toggle_sub")
+
+    alert_label = "🔕 Выкл алерты цены" if price_alerts else "🔔 Вкл алерты цены"
+    sub_builder.button(text=alert_label, callback_data="toggle_alerts")
+    sub_builder.adjust(2)
 
     builder.attach(conf_builder)
     builder.attach(sub_builder)
