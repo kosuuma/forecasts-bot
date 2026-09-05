@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: crypto-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./signals.db:/app/signals.db
+      - ./bot.log:/app/bot.log
+      - ./ml_model.pkl:/app/ml_model.pkl
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
