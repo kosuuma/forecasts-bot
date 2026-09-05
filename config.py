@@ -59,7 +59,7 @@ ATR_PERIOD = 14
 # Минимальная волатильность (ATR / цена, в %) для выдачи сигнала
 ATR_MIN_PCT = 0.02
 
-VOLUME_SPIKE_MULTIPLIER = 1.5  # объём выше среднего в X раз считается аномальным
+VOLUME_SPIKE_MULTIPLIER = 1.2  # объём выше среднего в X раз считается аномальным
 
 # --- Funding Rate ---
 FUNDING_RATE_BULLISH = -0.01   # funding < -0.01% = шортит рынок → бонус для UP
@@ -77,7 +77,7 @@ PRICE_SPIKE_PCT = 3.0
 
 # --- Логика силы сигнала ---
 # Всего проверяется 6 условий: RSI, MACD, BB, EMA, Volume, S/R
-MIN_CONFIRMATIONS_TO_SEND = 3  # меньше 3 = сигнал не отправляется (Weak)
+MIN_CONFIRMATIONS_TO_SEND = 2  # минимум 2 индикатора для сигнала
 STRONG_THRESHOLD = 5           # 5-6 индикаторов = Strong
 MEDIUM_THRESHOLD = 3           # 3-4 индикатора = Medium
 
