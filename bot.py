@@ -455,10 +455,8 @@ async def cmd_train(message: Message, db: Database):
         try:
             sig_time = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
             ind_copy = ind.copy()
-            if "open_time" in ind_copy.columns:
-                ind_copy["_diff"] = abs((ind_copy["open_time"] - sig_time).dt.total_seconds())
-            else:
-                ind_copy["_diff"] = range(len(ind_copy))
+            ind_dt = pd.to_datetime(ind_copy["open_time"], unit="ms", utc=True).dt.tz_localize(None)
+            ind_copy["_diff"] = abs((ind_dt - sig_time).dt.total_seconds())
             closest = ind_copy.loc[ind_copy["_diff"].idxmin()]
             merged_rows.append(closest.to_dict() | {"outcome": sig["outcome"]})
         except Exception:
