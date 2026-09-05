@@ -102,7 +102,6 @@ async def scan_and_notify(bot: Bot):
                 except Exception as e:
                     logger.error(f"Не удалось отправить уведомление {sub['chat_id']}: {e}")
 
-    async with aiohttp.ClientSession() as session:
         # Собираем уникальные таймфреймы, которые реально нужны подписчикам
         needed_timeframes = {s["timeframe"] for s in subscribers} or {config.DEFAULT_TIMEFRAME}
 
