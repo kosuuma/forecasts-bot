@@ -1,5 +1,9 @@
-import sys, time
+import sys, time, os
 sys.stdout.reconfigure(encoding="utf-8")
+
+# Disable proxy for PO connections
+os.environ["NO_PROXY"] = "demo-api-eu.po.market,api-eu.po.market,try-demo-eu.po.market"
+os.environ["no_proxy"] = os.environ["NO_PROXY"]
 
 print("1) Open PO in browser")
 print("2) Refresh page (F5)")
@@ -14,7 +18,6 @@ if not ssid:
     sys.exit(1)
 
 print(f"\nSSID length: {len(ssid)}")
-print(f"Starts with: {ssid[:50]}...")
 
 from pocketoptionapi import PocketOption
 from pocketoptionapi.ws.client import WebsocketClient
