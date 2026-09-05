@@ -401,8 +401,8 @@ async def cmd_train(message: Message, db: Database):
 
     await message.answer("🔄 Начинаю обучение ML-модели...")
 
-    from datetime import datetime, timedelta
-    cutoff = (datetime.utcnow() - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
+    from datetime import datetime, timedelta, timezone
+    cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
     cursor = await db._conn.execute(
         """SELECT symbol, timeframe, direction, strength_label, strength_pct,
                   price, created_at, outcome
