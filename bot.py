@@ -182,6 +182,7 @@ async def cb_set_timeframe(query: CallbackQuery, db: Database):
             settings["timeframe"],
             settings["min_confidence"],
             settings["subscribed"],
+            settings["price_alerts"],
         )
     )
 
@@ -198,6 +199,7 @@ async def cb_set_confidence(query: CallbackQuery, db: Database):
             settings["timeframe"],
             settings["min_confidence"],
             settings["subscribed"],
+            settings["price_alerts"],
         )
     )
 
@@ -218,6 +220,28 @@ async def cb_toggle_subscription(query: CallbackQuery, db: Database):
             settings["timeframe"],
             settings["min_confidence"],
             settings["subscribed"],
+            settings["price_alerts"],
+        )
+    )
+
+
+@router.callback_query(F.data == "toggle_alerts")
+async def cb_toggle_price_alerts(query: CallbackQuery, db: Database):
+    chat_id = query.message.chat.id
+    settings = await db.get_settings(chat_id)
+    new_value = not settings["price_alerts"]
+    await db.update_settings(chat_id, price_alerts=int(new_value))
+    if new_value:
+        await query.answer("🔔 Алерты цены включены")
+    else:
+        await query.answer("🔕 Алерты цены отключены")
+    settings = await db.get_settings(chat_id)
+    await query.message.edit_reply_markup(
+        reply_markup=settings_keyboard(
+            settings["timeframe"],
+            settings["min_confidence"],
+            settings["subscribed"],
+            settings["price_alerts"],
         )
     )
 
