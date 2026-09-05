@@ -155,8 +155,8 @@ async def cmd_settings(message: Message, db: Database):
         "⚙️ Настройки\n\n"
         f"Таймфрейм: {settings['timeframe']}\n"
         f"Мин. уверенность: {settings['min_confidence']}%\n"
-        f"Частота проверки: {settings['frequency_minutes']} мин\n"
-        f"Подписка: {'включена ✅' if settings['subscribed'] else 'выключена ❌'}\n\n"
+        f"Подписка: {'включена ✅' if settings['subscribed'] else 'выключена ❌'}\n"
+        f"Алерты цены: {'включены ✅' if settings['price_alerts'] else 'выключены ❌'}\n\n"
         "Выберите таймфрейм и минимальную уверенность сигнала:"
     )
     await message.answer(
@@ -165,6 +165,7 @@ async def cmd_settings(message: Message, db: Database):
             settings["timeframe"],
             settings["min_confidence"],
             settings["subscribed"],
+            settings["price_alerts"],
         ),
     )
 
