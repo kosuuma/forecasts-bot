@@ -39,6 +39,7 @@ def main_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="❌ Отписаться"),
             ],
             [
+                KeyboardButton(text="🔍 Проверить"),
                 KeyboardButton(text="🔔 Алерты цены"),
             ],
         ],
