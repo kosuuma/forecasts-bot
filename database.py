@@ -79,7 +79,7 @@ class Database:
             """INSERT INTO subscribers (chat_id, timeframe, min_confidence, subscribed)
                VALUES (?, ?, ?, 1)
                ON CONFLICT(chat_id) DO UPDATE SET subscribed = 1""",
-            (chat_id, timeframe or config.DEFAULT_TIMEFRAME, min_confidence or 60),
+            (chat_id, timeframe or config.DEFAULT_TIMEFRAME, min_confidence or 0),
         )
         await self._conn.commit()
 
@@ -113,7 +113,7 @@ class Database:
         if not row:
             return {
                 "timeframe": config.DEFAULT_TIMEFRAME,
-                "min_confidence": 60,
+                "min_confidence": 0,
                 "frequency_minutes": config.SCAN_INTERVAL_MINUTES,
                 "subscribed": False,
                 "price_alerts": True,
