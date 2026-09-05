@@ -34,6 +34,22 @@ logger = logging.getLogger("main")
 
 db = Database()
 
+# Хранилище последнего известного статуса биржи
+_exchange_status = {"is_open": True, "notified": False}
+
+
+async def check_exchange_status(session: aiohttp.ClientSession) -> bool:
+    """
+    Проверяет доступность биржи, пытаясь получить тикер.
+    Возвращает True если биржа доступна, False если нет.
+    """
+    try:
+        from exchanges import fetch_ticker_24h
+        ticker = await fetch_ticker_24h(session, "BTCUSDT", exchange=config.DEFAULT_EXCHANGE)
+        return ticker is not None
+    except Exception:
+        return False
+
 
 async def scan_and_notify(bot: Bot):
     """
@@ -50,10 +66,46 @@ async def scan_and_notify(bot: Bot):
         logger.info("Нет активных подписчиков, сканирование пропущено.")
         return
 
-    # Собираем уникальные таймфреймы, которые реально нужны подписчикам
-    needed_timeframes = {s["timeframe"] for s in subscribers} or {config.DEFAULT_TIMEFRAME}
+    async with aiohttp.ClientSession() as session:
+        # Проверяем статус биржи
+        exchange_open = await check_exchange_status(session)
+
+        if not exchange_open:
+            if _exchange_status["is_open"]:
+                # Биржа только что закрылась — уведомляем подписчиков
+                _exchange_status["is_open"] = False
+                _exchange_status["notified"] = False
+                if not _exchange_status["notified"]:
+                    for sub in subscribers:
+                        try:
+                            await bot.send_message(
+                                sub["chat_id"],
+                                "⚠️ Биржа недоступна или на техническом обслуживании.\n"
+                                "Сигналы будут возобновлены после восстановления."
+                            )
+                        except Exception as e:
+                            logger.error(f"Не удалось отправить уведомление {sub['chat_id']}: {e}")
+                    _exchange_status["notified"] = True
+            logger.warning("Биржа недоступна, сканирование пропущено.")
+            return
+
+        if not _exchange_status["is_open"]:
+            # Биржа восстановилась
+            _exchange_status["is_open"] = True
+            _exchange_status["notified"] = False
+            for sub in subscribers:
+                try:
+                    await bot.send_message(
+                        sub["chat_id"],
+                        "✅ Биржа снова доступна! Сигналы возобновлены."
+                    )
+                except Exception as e:
+                    logger.error(f"Не удалось отправить уведомление {sub['chat_id']}: {e}")
 
     async with aiohttp.ClientSession() as session:
+        # Собираем уникальные таймфреймы, которые реально нужны подписчикам
+        needed_timeframes = {s["timeframe"] for s in subscribers} or {config.DEFAULT_TIMEFRAME}
+
         for symbol in pairs:
             # Получаем funding rate и orderbook один раз на пару
             funding_rate = None
