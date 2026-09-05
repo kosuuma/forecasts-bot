@@ -149,6 +149,7 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
     last = df.iloc[-1]
 
     if pd.isna(last["rsi"]) or pd.isna(last["macd"]) or pd.isna(last["ema_50"]):
+        logger.debug(f"{symbol} {timeframe}: NaN в индикаторах")
         return None
 
     # Фильтр по волатильности — не даём сигналы в "мёртвом" рынке
