@@ -78,7 +78,7 @@ PRICE_SPIKE_PCT = 3.0
 # --- Логика силы сигнала ---
 # Всего проверяется 6 условий: RSI, MACD, BB, EMA, Volume, S/R
 MIN_CONFIRMATIONS_TO_SEND = 2  # минимум 2 индикатора для сигнала
-STRONG_THRESHOLD = 5           # 5-6 индикаторов = Strong
+STRONG_THRESHOLD = 4           # 4-6 индикаторов = Strong
 MEDIUM_THRESHOLD = 2           # 2-3 индикатора = Medium
 
 # Rate limiting: не чаще одного сигнала на пару за X минут
