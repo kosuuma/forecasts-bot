@@ -242,6 +242,10 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
     up_score = sum(1 for c in up_checks if c.passed)
     down_score = sum(1 for c in down_checks if c.passed)
 
+    up_detail = ", ".join(f"{c.name}={'✓' if c.passed else '✗'}" for c in up_checks)
+    down_detail = ", ".join(f"{c.name}={'✓' if c.passed else '✗'}" for c in down_checks)
+    logger.info(f"{symbol} {timeframe}: UP={up_score} [{up_detail}] | DOWN={down_score} [{down_detail}]")
+
     if up_score < config.MIN_CONFIRMATIONS_TO_SEND and down_score < config.MIN_CONFIRMATIONS_TO_SEND:
         return None
 
