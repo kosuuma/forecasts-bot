@@ -457,8 +457,12 @@ async def cmd_train(message: Message, db: Database):
             ind_copy = ind.copy()
             ind_dt = pd.to_datetime(ind_copy["open_time"], unit="ms", utc=True).dt.tz_localize(None)
             ind_copy["_diff"] = abs((ind_dt - sig_time).dt.total_seconds())
-            closest = ind_copy.loc[ind_copy["_diff"].idxmin()]
-            merged_rows.append(closest.to_dict() | {"outcome": sig["outcome"]})
+            rsi_col = ind_copy["rsi"] if "rsi" in ind_copy.columns else pd.Series(dtype=float)
+            valid_mask = rsi_col.notna() if not rsi_col.empty else pd.Series([False]*len(ind_copy))
+            if valid_mask.any():
+                valid_ind = ind_copy[valid_mask]
+                closest = valid_ind.loc[valid_ind["_diff"].idxmin()]
+                merged_rows.append(closest.to_dict() | {"outcome": sig["outcome"]})
         except Exception:
             continue
 
