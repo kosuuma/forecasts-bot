@@ -301,11 +301,11 @@ async def cmd_train(message: Message, db: Database):
     import pandas as pd
     df = pd.DataFrame([dict(zip(cols, r)) for r in rows])
 
-    if len(df) < 100:
-        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(df)} сигналов (нужно минимум 100)")
+    if len(df) < 50:
+        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(df)} сигналов (нужно минимум 50)")
         return
 
-    result = train_model(df, min_samples=100)
+    result = train_model(df, min_samples=50)
     if result:
         await message.answer(
             f"✅ ML модель обучена!\n\n"

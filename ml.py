@@ -70,7 +70,7 @@ def _create_labels(df: pd.DataFrame, forward_periods: int = 3) -> pd.Series:
     return labels
 
 
-def train_model(df_signals: pd.DataFrame, min_samples: int = 100) -> Optional[dict]:
+def train_model(df_signals: pd.DataFrame, min_samples: int = 50) -> Optional[dict]:
     """
     Обучает ML-модель на исторических данных.
     df_signals: DataFrame с колонками индикаторов и outcome (win/loss/expired).
