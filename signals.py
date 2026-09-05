@@ -202,6 +202,42 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
             up_checks.append(spread_penalty)
             down_checks.append(spread_penalty)
 
+    # --- Fear & Greed Index ---
+    if fear_greed is not None:
+        fg_value = fear_greed.get("value", 50)
+        # Экстремальный страх (<25) = контриан бычий сигнал
+        # Экстремальная жадность (>75) = контриан медвежий сигнал
+        fg_up_ok = fg_value < 25
+        fg_down_ok = fg_value > 75
+        fg_detail = f"{fg_value} ({fear_greed.get('classification', '?')})"
+        up_checks.append(SignalCheck("FearGreed", fg_up_ok, f"{fg_detail} — контриан"))
+        down_checks.append(SignalCheck("FearGreed", fg_down_ok, f"{fg_detail} — контриан"))
+
+    # --- Long/Short Ratio ---
+    if long_short is not None:
+        ratio_val = long_short.get("ratio", 1.0)
+        long_pct = long_short.get("long_pct", 50)
+        # Большинство в лонгах (>60%) = возможен сброс → DOWN
+        # Большинство в шортах (<40%) = возможен шорт-сквиз → UP
+        ls_up_ok = ratio_val < 0.8
+        ls_down_ok = ratio_val > 1.2
+        ls_detail = f"L:{long_pct:.0f}% / S:{100-long_pct:.0f}%"
+        up_checks.append(SignalCheck("LongShort", ls_up_ok, f"{ls_detail} (шорт-сквиз)"))
+        down_checks.append(SignalCheck("LongShort", ls_down_ok, f"{ls_detail} (сброс лонгов)"))
+
+    # --- Liquidations ---
+    if liquidations is not None:
+        liq_total = liquidations.get("total", 0)
+        dominant = liquidations.get("dominant", "")
+        # Массовые ликвидации лонгов → бычий отскок (шорт-сквиз)
+        # Массовые ликвидации шортов → медвежий откат
+        if liq_total > 100000:  # >$100k ликвидаций за 5 минут
+            liq_up_ok = dominant == "long"
+            liq_down_ok = dominant == "short"
+            liq_detail = f"${liq_total:,.0f} ({dominant} ликвидации)"
+            up_checks.append(SignalCheck("Liquidations", liq_up_ok, liq_detail))
+            down_checks.append(SignalCheck("Liquidations", liq_down_ok, liq_detail))
+
     up_score = sum(1 for c in up_checks if c.passed)
     down_score = sum(1 for c in down_checks if c.passed)
 
@@ -331,7 +367,7 @@ def format_signal_message(signal: Signal) -> str:
         "━━━━━━━━━━━━━━━━",
     ])
 
-    icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯", "Funding": "💹", "Orderbook": "📚", "Spread": "📏"}
+    icons = {"RSI": "📉", "MACD": "📊", "BB": "📦", "EMA": "📶", "Volume": "🔊", "S/R": "🎯", "Funding": "💹", "Orderbook": "📚", "Spread": "📏", "FearGreed": "😱", "LongShort": "⚖️", "Liquidations": "💥"}
     for check in signal.checks:
         icon = icons.get(check.name, "•")
         mark = "✅" if check.passed else "❌"
