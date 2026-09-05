@@ -110,13 +110,13 @@ def _check_up_conditions(last: pd.Series, sr: dict) -> list:
 def _check_down_conditions(last: pd.Series, sr: dict) -> list:
     checks = []
 
-    rsi_ok = last["rsi"] > config.RSI_OVERBOUGHT
+    rsi_ok = last["rsi"] > config.RSI_OVERBOUGHT - 10
     checks.append(SignalCheck("RSI", rsi_ok, f"{last['rsi']:.1f}"))
 
-    macd_ok = last["macd"] < last["macd_signal"] and last["macd_hist"] < 0
+    macd_ok = last["macd"] < last["macd_signal"]
     checks.append(SignalCheck("MACD", macd_ok, "Медвежий кросс" if macd_ok else "Нет кросса"))
 
-    bb_ok = last["close"] >= last["bb_upper"] * 0.99
+    bb_ok = last["close"] >= last["bb_upper"] * 0.97
     checks.append(SignalCheck("BB", bb_ok, "У верхней границы" if bb_ok else "В канале"))
 
     ema_ok = last["close"] < last["ema_50"]
@@ -125,7 +125,7 @@ def _check_down_conditions(last: pd.Series, sr: dict) -> list:
     vol_ok = last["volume_ratio"] >= config.VOLUME_SPIKE_MULTIPLIER
     checks.append(SignalCheck("Volume", vol_ok, f"x{last['volume_ratio']:.1f} от среднего"))
 
-    sr_ok = sr["distance_to_resistance_pct"] <= 0.5
+    sr_ok = sr["distance_to_resistance_pct"] <= 1.5
     checks.append(SignalCheck("S/R", sr_ok, "У сопротивления" if sr_ok else "Не у уровня"))
 
     return checks
