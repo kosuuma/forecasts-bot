@@ -1,6 +1,5 @@
 @echo off
 title Crypto Bot
-
 call venv\Scripts\activate.bat
 
 echo [1/2] Starting autosave...
