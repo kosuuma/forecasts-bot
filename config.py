@@ -57,7 +57,7 @@ STOCH_RSI_PERIOD = 14
 
 ATR_PERIOD = 14
 # Минимальная волатильность (ATR / цена, в %) для выдачи сигнала
-ATR_MIN_PCT = 0.05
+ATR_MIN_PCT = 0.02
 
 VOLUME_SPIKE_MULTIPLIER = 1.5  # объём выше среднего в X раз считается аномальным
 
