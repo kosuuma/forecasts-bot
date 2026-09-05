@@ -216,6 +216,53 @@ class Database:
             "winrate": winrate,
         }
 
+    async def get_streak(self, days: int = 7) -> dict:
+        """Последовательность побед/поражений (streak)."""
+        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cursor = await self._conn.execute(
+            """SELECT outcome FROM signals_history
+               WHERE created_at >= ? AND outcome IN ('win', 'loss')
+               ORDER BY created_at DESC""",
+            (cutoff,),
+        )
+        rows = [r[0] for r in await cursor.fetchall()]
+
+        if not rows:
+            return {"type": "—", "count": 0}
+
+        current_type = rows[0]
+        count = 0
+        for outcome in rows:
+            if outcome == current_type:
+                count += 1
+            else:
+                break
+
+        return {"type": current_type, "count": count}
+
+    async def get_stats_by_timeframe(self, days: int = 7) -> list:
+        """Статистика по таймфреймам."""
+        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cursor = await self._conn.execute(
+            """SELECT timeframe,
+                      SUM(CASE WHEN outcome = 'win' THEN 1 ELSE 0 END) as wins,
+                      SUM(CASE WHEN outcome = 'loss' THEN 1 ELSE 0 END) as losses,
+                      COUNT(*) as total
+               FROM signals_history
+               WHERE created_at >= ? AND outcome != 'pending'
+               GROUP BY timeframe
+               ORDER BY total DESC""",
+            (cutoff,),
+        )
+        rows = await cursor.fetchall()
+        result = []
+        for tf, wins, losses, total in rows:
+            resolved = wins + losses
+            winrate = round(wins / resolved * 100, 1) if resolved else 0.0
+            result.append({"timeframe": tf, "wins": wins, "losses": losses,
+                           "total": total, "winrate": winrate})
+        return result
+
     async def get_stats_by_pair(self, days: int = 7) -> list:
         cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         cursor = await self._conn.execute(
