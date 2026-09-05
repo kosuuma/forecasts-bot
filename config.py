@@ -76,10 +76,10 @@ ORDERBOOK_SPREAD_MAX = 0.5      # максимальный spread в % (инач
 PRICE_SPIKE_PCT = 3.0
 
 # --- Логика силы сигнала ---
-# Всего проверяется 6 условий: RSI, MACD, BB, EMA, Volume, S/R
-MIN_CONFIRMATIONS_TO_SEND = 2  # минимум 2 индикатора для сигнала
-STRONG_THRESHOLD = 4           # 4-6 индикаторов = Strong
-MEDIUM_THRESHOLD = 2           # 2-3 индикатора = Medium
+# Всего 10 индикаторов: RSI, MACD, BB, EMA, Volume, S/R, Funding, Orderbook, FearGreed, LongShort
+MIN_CONFIRMATIONS_TO_SEND = 3  # минимум 3 индикатора для сигнала
+STRONG_THRESHOLD = 5           # 5-10 индикаторов = Strong
+MEDIUM_THRESHOLD = 3           # 3-4 индикатора = Medium
 
 # Rate limiting: не чаще одного сигнала на пару за X минут
 SIGNAL_COOLDOWN_MINUTES = 5
