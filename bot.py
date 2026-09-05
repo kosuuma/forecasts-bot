@@ -93,6 +93,18 @@ async def btn_unsubscribe(message: Message, db: Database):
     await cmd_unsubscribe(message, db)
 
 
+@router.message(F.text == "🔔 Алерты цены")
+async def btn_toggle_price_alerts(message: Message, db: Database):
+    chat_id = message.chat.id
+    settings = await db.get_settings(chat_id)
+    new_value = not settings["price_alerts"]
+    await db.update_settings(chat_id, price_alerts=int(new_value))
+    if new_value:
+        await message.answer("🔔 Алерты о движении цены включены!", reply_markup=main_keyboard())
+    else:
+        await message.answer("🔕 Алерты о движении цены отключены.", reply_markup=main_keyboard())
+
+
 # ---------------------------------------------------------------------------
 # /subscribe /unsubscribe
 # ---------------------------------------------------------------------------
