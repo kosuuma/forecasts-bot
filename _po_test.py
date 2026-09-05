@@ -136,7 +136,7 @@ if ok:
         idx = int(time.time() * 100)
         msg = f'42["getCandles",["loadHistoryPeriod",{{"asset":"EURUSD_otc","index":{idx},"offset":200,"period":60,"time":{end_time}}}]]'
         print("Sending getCandles...")
-        coro = api.websocket.send_message(msg)
+        coro = api.api.websocket.send_message(msg)
         asyncio.get_event_loop().create_task(coro)
 
         print("Waiting for loadHistoryPeriodFast...")
