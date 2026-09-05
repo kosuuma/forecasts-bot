@@ -54,14 +54,14 @@ async def resolve_pending_signals(session: aiohttp.ClientSession, db: Database):
     Проверяет сигналы и определяет исход (win/loss/expired) по TP/SL уровням.
     Загружает свечи за время жизни сигнала и проверяет, какой уровень сработал раньше.
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     pending = await db.get_pending_signals()
     for sig in pending:
         try:
             # Сколько минут прошло с момента сигнала
             created = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             elapsed_minutes = (now - created).total_seconds() / 60
 
             # Если время жизни истекло — проверяем, был ли TP/SL за это время
