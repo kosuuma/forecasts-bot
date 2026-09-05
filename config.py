@@ -34,6 +34,14 @@ DEFAULT_PAIRS = [
     "ETCUSDT", "FILUSDT", "APTUSDT", "ARBUSDT", "OPUSDT",
 ]
 
+# Пары Pocket Option
+PO_PAIRS = [
+    "EURUSD_otc", "GBPUSD_otc", "USDJPY_otc", "AUDUSD_otc",
+    "EURGBP_otc", "EURJPY_otc", "GBPJPY_otc", "USDCAD_otc",
+    "USDCHF_otc", "NZDUSD_otc",
+    "BTCUSD_otc", "ETHUSD_otc",
+]
+
 # --- Таймфреймы ---
 TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h"]
 DEFAULT_TIMEFRAME = "5m"
