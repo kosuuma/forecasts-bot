@@ -2,16 +2,16 @@ import sys, time, logging
 sys.stdout.reconfigure(encoding="utf-8")
 logging.basicConfig(level=logging.INFO)
 from pocketoptionapi import PocketOption
-from pocketoptionapi.ws.client import WebSocketClient
+from pocketoptionapi.ws.client import WebsocketClient
 
 # Exact SSID from browser
 EXACT_SSID = '42["auth",{"sessionToken":"9aca9c3cc8c5e85691bbded020e0c83e","uid":"140064076","lang":"ru","currentUrl":"cabinet/demo-quick-high-low","isChart":1}]'
 
 # Monkey-patch to send exact SSID
-original_build = WebSocketClient._build_auth_message
+original_build = WebsocketClient._build_auth_message
 def patched_build(self):
     return EXACT_SSID
-WebSocketClient._build_auth_message = patched_build
+WebsocketClient._build_auth_message = patched_build
 
 api = PocketOption(EXACT_SSID)
 ok, err = api.connect()
