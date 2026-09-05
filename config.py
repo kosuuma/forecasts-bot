@@ -11,11 +11,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
 
 # --- Pocket Option ---
-PO_UID = int(os.getenv("PO_UID", "0"))
-PO_SECRET = os.getenv("PO_SECRET", "")
+PO_SSID = os.getenv("PO_SSID", "")
 PO_IS_DEMO = os.getenv("PO_IS_DEMO", "1") == "1"
 
-# Источник данных: "binance" или "pocket_option"
+# Data source: "binance" or "pocket_option"
 DATA_SOURCE = os.getenv("DATA_SOURCE", "binance")
 
 # --- Биржа и данные ---
