@@ -192,14 +192,17 @@ async def cb_set_timeframe(query: CallbackQuery, db: Database):
     await db.update_settings(chat_id, timeframe=tf)
     await query.answer(f"Таймфрейм установлен: {tf}")
     settings = await db.get_settings(chat_id)
-    await query.message.edit_reply_markup(
-        reply_markup=settings_keyboard(
-            settings["timeframe"],
-            settings["min_confidence"],
-            settings["subscribed"],
-            settings["price_alerts"],
+    try:
+        await query.message.edit_reply_markup(
+            reply_markup=settings_keyboard(
+                settings["timeframe"],
+                settings["min_confidence"],
+                settings["subscribed"],
+                settings["price_alerts"],
+            )
         )
-    )
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("set_conf:"))
@@ -209,14 +212,17 @@ async def cb_set_confidence(query: CallbackQuery, db: Database):
     await db.update_settings(chat_id, min_confidence=conf)
     await query.answer(f"Минимальная уверенность: {conf}%")
     settings = await db.get_settings(chat_id)
-    await query.message.edit_reply_markup(
-        reply_markup=settings_keyboard(
-            settings["timeframe"],
-            settings["min_confidence"],
-            settings["subscribed"],
-            settings["price_alerts"],
+    try:
+        await query.message.edit_reply_markup(
+            reply_markup=settings_keyboard(
+                settings["timeframe"],
+                settings["min_confidence"],
+                settings["subscribed"],
+                settings["price_alerts"],
+            )
         )
-    )
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data == "toggle_sub")
@@ -230,14 +236,17 @@ async def cb_toggle_subscription(query: CallbackQuery, db: Database):
         await db.subscribe(chat_id)
         await query.answer("🔔 Подписка включена")
     settings = await db.get_settings(chat_id)
-    await query.message.edit_reply_markup(
-        reply_markup=settings_keyboard(
-            settings["timeframe"],
-            settings["min_confidence"],
-            settings["subscribed"],
-            settings["price_alerts"],
+    try:
+        await query.message.edit_reply_markup(
+            reply_markup=settings_keyboard(
+                settings["timeframe"],
+                settings["min_confidence"],
+                settings["subscribed"],
+                settings["price_alerts"],
+            )
         )
-    )
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data == "toggle_alerts")
@@ -251,14 +260,17 @@ async def cb_toggle_price_alerts(query: CallbackQuery, db: Database):
     else:
         await query.answer("🔕 Алерты цены отключены")
     settings = await db.get_settings(chat_id)
-    await query.message.edit_reply_markup(
-        reply_markup=settings_keyboard(
-            settings["timeframe"],
-            settings["min_confidence"],
-            settings["subscribed"],
-            settings["price_alerts"],
+    try:
+        await query.message.edit_reply_markup(
+            reply_markup=settings_keyboard(
+                settings["timeframe"],
+                settings["min_confidence"],
+                settings["subscribed"],
+                settings["price_alerts"],
+            )
         )
-    )
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
