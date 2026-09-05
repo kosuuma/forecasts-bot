@@ -171,6 +171,7 @@ async def scan_and_notify(bot: Bot):
                     if not signal:
                         continue
 
+                    logger.info(f"✅ СИГНАЛ: {signal.symbol} {signal.timeframe} {signal.direction} {signal.strength_pct}% (id={signal.strength_label})")
                     await db.save_signal(signal)
                     message_text = format_signal_message(signal)
 
