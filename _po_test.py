@@ -14,7 +14,6 @@ def patched_build(self):
     return ssid
 WebsocketClient._build_auth_message = patched_build
 
-# Determine if demo or live from SSID
 is_demo = '"isDemo":1' in ssid or '"isDemo": 1' in ssid
 print(f"Mode: {'DEMO' if is_demo else 'LIVE'}")
 
@@ -38,7 +37,6 @@ orig_on_message = WebsocketClient.on_message
 async def patched_on_message(self, message):
     global candles_result, pending_binary_type
 
-    # String messages
     if isinstance(message, str):
         if message.startswith("451-["):
             try:
@@ -48,12 +46,9 @@ async def patched_on_message(self, message):
             except:
                 pass
             return
-
-        # Regular text messages - let library handle
         await self._handle_text_message(message)
         return
 
-    # Binary / already-decoded messages (bytes, list, dict)
     actual = message
     if isinstance(message, bytes):
         try:
@@ -65,11 +60,6 @@ async def patched_on_message(self, message):
     pending_binary_type = None
 
     if msg_type is None:
-        # Try to detect type from data shape
-        if isinstance(actual, list) and len(actual) > 0:
-            if actual[0] == "successauth" or (isinstance(actual[0], str) and "auth" in actual[0]):
-                msg_type = actual[0]
-                actual = actual[1] if len(actual) > 1 else None
         return
 
     if msg_type == "successauth":
@@ -82,6 +72,10 @@ async def patched_on_message(self, message):
     if msg_type == "loadHistoryPeriodFast":
         candles_result = actual
         candles_event.set()
+        # Also set library's internal event
+        if isinstance(actual, dict):
+            self.api.history_data = actual
+            self.api._history_data_event.set()
         count = len(actual.get("data", [])) if isinstance(actual, dict) else 0
         print(f"  >>> loadHistoryPeriodFast: {count} candles!")
         return
@@ -125,32 +119,25 @@ if ok:
         print(f"check_connect={api.check_connect()}, is_time_synced={api.is_time_synced()}")
 
     if api.check_connect():
-        server_time = api.api.time_sync.get_server_native_time()
-        end_time = int((server_time // 60) * 60)
-        print(f"Server time: {server_time}")
-
-        print("Subscribing EURUSD_otc...")
+        print("Subscribing EURUSD_otc period=60...")
         api.subscribe("EURUSD_otc", period=60)
-        time.sleep(1)
+        time.sleep(2)
 
-        idx = int(time.time() * 100)
-        msg = f'42["getCandles",["loadHistoryPeriod",{{"asset":"EURUSD_otc","index":{idx},"offset":200,"period":60,"time":{end_time}}}]]'
-        print("Sending getCandles...")
-        coro = api.api.websocket.send_message(msg)
-        asyncio.get_event_loop().create_task(coro)
-
-        print("Waiting for loadHistoryPeriodFast...")
+        print("Getting candles via library method...")
         try:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(asyncio.wait_for(candles_event.wait(), timeout=15))
-            if candles_result and "data" in candles_result:
-                data = candles_result["data"]
-                print(f"\n=== GOT {len(data)} CANDLES ===")
-                for c in data[-5:]:
-                    print(c)
+            candles = api.get_historical_candles("EURUSD_otc", period=60, count_request=1)
+            if candles:
+                print(f"\n=== GOT {len(candles)} CANDLES ===")
+                if isinstance(candles, list):
+                    for c in candles[-5:]:
+                        print(c)
+                else:
+                    print(candles.tail(5).to_string())
             else:
-                print("No candle data")
-        except asyncio.TimeoutError:
-            print("Timeout - no response")
+                print("No candles returned")
+        except Exception as e:
+            print(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
 
     api.disconnect_websocket()
