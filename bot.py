@@ -95,7 +95,8 @@ async def btn_unsubscribe(message: Message, db: Database):
 # ---------------------------------------------------------------------------
 @router.message(Command("subscribe"))
 async def cmd_subscribe(message: Message, db: Database):
-    await db.subscribe(message.chat.id)
+    chat_id = message.chat.id
+    await db.subscribe(chat_id)
     await message.answer(
         "✅ Вы подписались на автоматические сигналы.\n"
         "Настроить таймфрейм и порог уверенности можно через ⚙️ Настройки.",
@@ -105,7 +106,8 @@ async def cmd_subscribe(message: Message, db: Database):
 
 @router.message(Command("unsubscribe"))
 async def cmd_unsubscribe(message: Message, db: Database):
-    await db.unsubscribe(message.chat.id)
+    chat_id = message.chat.id
+    await db.unsubscribe(chat_id)
     await message.answer(
         "🔕 Вы отписались от автоматических сигналов.",
         reply_markup=main_keyboard(),
