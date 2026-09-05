@@ -106,10 +106,21 @@ async def scan_and_notify(bot: Bot):
         # Собираем уникальные таймфреймы, которые реально нужны подписчикам
         needed_timeframes = {s["timeframe"] for s in subscribers} or {config.DEFAULT_TIMEFRAME}
 
+        # Fear & Greed Index — глобальный для всего рынка (один раз за цикл)
+        fear_greed = None
+        try:
+            fear_greed = await fetch_fear_greed_index(session)
+            if fear_greed:
+                logger.info(f"Fear & Greed: {fear_greed['value']} ({fear_greed['classification']})")
+        except Exception as e:
+            logger.debug(f"Не удалось получить Fear & Greed: {e}")
+
         for symbol in pairs:
-            # Получаем funding rate и orderbook один раз на пару
+            # Получаем funding rate, orderbook, long/short, liquidations
             funding_rate = None
             orderbook = None
+            long_short = None
+            liquidations = None
             try:
                 funding_rate = await fetch_funding_rate(session, symbol, exchange=config.DEFAULT_EXCHANGE)
             except Exception as e:
@@ -118,6 +129,14 @@ async def scan_and_notify(bot: Bot):
                 orderbook = await fetch_orderbook_depth(session, symbol, exchange=config.DEFAULT_EXCHANGE)
             except Exception as e:
                 logger.debug(f"Не удалось получить orderbook для {symbol}: {e}")
+            try:
+                long_short = await fetch_long_short_ratio(session, symbol, exchange=config.DEFAULT_EXCHANGE)
+            except Exception as e:
+                logger.debug(f"Не удалось получить Long/Short для {symbol}: {e}")
+            try:
+                liquidations = await fetch_liquidations(session, symbol, exchange=config.DEFAULT_EXCHANGE)
+            except Exception as e:
+                logger.debug(f"Не удалось получить ликвидации для {symbol}: {e}")
 
             # Кэш для данных старшего TF (чтобы не загружать повторно)
             higher_tf_cache = {}
@@ -147,7 +166,8 @@ async def scan_and_notify(bot: Bot):
                                 logger.debug(f"Не удалось получить {higher_tf} для {symbol}: {e}")
 
                     signal = analyze(df, symbol, tf, funding_rate=funding_rate, orderbook=orderbook,
-                                     df_higher_tf=df_higher)
+                                     df_higher_tf=df_higher, fear_greed=fear_greed,
+                                     long_short=long_short, liquidations=liquidations)
                     if not signal:
                         continue
 
