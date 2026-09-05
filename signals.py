@@ -274,11 +274,6 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
     higher_tf = config.TF_HIERARCHY.get(timeframe)
     if higher_tf and df_higher_tf is not None:
         higher_tf_trend, higher_tf_aligned = check_higher_tf_alignment(df_higher_tf, direction)
-        # Если старший TF противоречит — снижаем силу сигнала
-        if not higher_tf_aligned and higher_tf_trend != "—":
-            strength_label = "Medium" if strength_label == "Strong" else None
-            if strength_label is None:
-                return None  # Слабый сигнал из-за конфликта таймфреймов
 
     # --- ML Prediction ---
     global _ml_model
@@ -290,11 +285,6 @@ def analyze(df_raw: pd.DataFrame, symbol: str, timeframe: str,
         ml_proba = ml_predict(df, _ml_model)
         if ml_proba is not None:
             ml_confidence = ml_proba
-            # Если ML предсказывает низкую вероятность win — штрафуем
-            if ml_proba < 0.4:
-                strength_label = "Medium" if strength_label == "Strong" else None
-                if strength_label is None:
-                    return None  # ML не подтверждает сигнал
 
     strength_pct = round(score / total_indicators * 100)
 
