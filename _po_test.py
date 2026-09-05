@@ -126,7 +126,7 @@ if ok:
 
         # Send getCandles via the websocket's event loop
         server_time = api.api.time_sync.get_server_native_time()
-        end_time = int((server_time // 60) * 60)
+        end_time = int(server_time) - (200 * 60)
         idx = int(time.time() * 100)
         req = {"asset": "EURUSD_otc", "index": idx, "offset": 200, "period": 60, "time": end_time}
         raw_msg = f'42["loadHistoryPeriod",{json.dumps(req)}]'
