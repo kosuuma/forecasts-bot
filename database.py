@@ -161,9 +161,19 @@ class Database:
                FROM signals_history ORDER BY created_at DESC LIMIT ?""",
             (limit,),
         )
-        rows = await cursor.fetchall()
+        rows = cursor.fetchall()
         cols = ["symbol", "timeframe", "direction", "strength_label", "strength_pct", "price", "created_at", "outcome"]
-        return [dict(zip(cols, r)) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(zip(cols, r))
+            # Конвертируем UTC в местное время (Москва UTC+3)
+            if d["created_at"]:
+                from datetime import datetime, timedelta
+                utc_time = datetime.strptime(d["created_at"], "%Y-%m-%d %H:%M:%S")
+                local_time = utc_time + timedelta(hours=3)
+                d["created_at"] = local_time.strftime("%d.%m %H:%M")
+            result.append(d)
+        return result
 
     async def update_outcome(self, signal_id: int, outcome: str):
         await self._conn.execute(
