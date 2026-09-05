@@ -3,7 +3,7 @@
 """
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import aiosqlite
