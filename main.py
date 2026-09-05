@@ -183,6 +183,9 @@ async def scan_and_notify(bot: Bot):
                             await bot.send_message(sub["chat_id"], message_text)
                         except Exception as e:
                             logger.error(f"Не удалось отправить сигнал пользователю {sub['chat_id']}: {e}")
+                            if "Forbidden" in str(e):
+                                await db.unsubscribe(sub["chat_id"])
+                                logger.info(f"Автоотписка {sub['chat_id']}: бот заблокирован")
 
                 except Exception as e:
                     logger.error(f"Ошибка анализа {symbol} [{tf}]: {e}")
