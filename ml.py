@@ -27,33 +27,50 @@ def _prepare_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     features = pd.DataFrame()
 
-    # Основные индикаторы
-    features["rsi"] = df["rsi"]
-    features["macd_hist"] = df["macd_hist"]
-    features["bb_width"] = df["bb_width"]
-    features["ema_50_dist"] = (df["close"] - df["ema_50"]) / df["close"] * 100
-    features["ema_200_dist"] = (df["close"] - df["ema_200"]) / df["close"] * 100
-    features["volume_ratio"] = df["volume_ratio"]
-    features["atr_pct"] = df["atr_pct"]
-    features["stoch_rsi_k"] = df["stoch_rsi_k"]
-    features["stoch_rsi_d"] = df["stoch_rsi_d"]
+    required_cols = ["rsi", "macd_hist", "bb_width", "close", "ema_50", "ema_200",
+                     "volume_ratio", "atr_pct", "stoch_rsi_k", "stoch_rsi_d",
+                     "ema_9", "ema_21", "bb_upper", "bb_lower", "obv"]
+    available = [c for c in required_cols if c in df.columns]
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        logger.warning(f"ML: отсутствуют колонки: {missing}")
 
-    # Производные признаки
-    features["rsi_overbought"] = (df["rsi"] > 70).astype(int)
-    features["rsi_oversold"] = (df["rsi"] < 30).astype(int)
-    features["macd_positive"] = (df["macd_hist"] > 0).astype(int)
-    features["bb_upper_dist"] = (df["close"] - df["bb_upper"]) / df["close"] * 100
-    features["bb_lower_dist"] = (df["close"] - df["bb_lower"]) / df["close"] * 100
+    if "rsi" in df.columns:
+        features["rsi"] = df["rsi"]
+    if "macd_hist" in df.columns:
+        features["macd_hist"] = df["macd_hist"]
+    if "bb_width" in df.columns:
+        features["bb_width"] = df["bb_width"]
+    if all(c in df.columns for c in ["close", "ema_50"]):
+        features["ema_50_dist"] = (df["close"] - df["ema_50"]) / df["close"] * 100
+    if all(c in df.columns for c in ["close", "ema_200"]):
+        features["ema_200_dist"] = (df["close"] - df["ema_200"]) / df["close"] * 100
+    if "volume_ratio" in df.columns:
+        features["volume_ratio"] = df["volume_ratio"]
+    if "atr_pct" in df.columns:
+        features["atr_pct"] = df["atr_pct"]
+    if "stoch_rsi_k" in df.columns:
+        features["stoch_rsi_k"] = df["stoch_rsi_k"]
+    if "stoch_rsi_d" in df.columns:
+        features["stoch_rsi_d"] = df["stoch_rsi_d"]
 
-    # EMA crossover
-    features["ema_9_above_21"] = (df["ema_9"] > df["ema_21"]).astype(int)
-    features["ema_50_above_200"] = (df["ema_50"] > df["ema_200"]).astype(int)
-
-    # OBV slope (производная)
-    features["obv_slope"] = df["obv"].pct_change(5) * 100
-
-    # StochRSI crossover
-    features["stoch_k_above_d"] = (df["stoch_rsi_k"] > df["stoch_rsi_d"]).astype(int)
+    if "rsi" in df.columns:
+        features["rsi_overbought"] = (df["rsi"] > 70).astype(int)
+        features["rsi_oversold"] = (df["rsi"] < 30).astype(int)
+    if "macd_hist" in df.columns:
+        features["macd_positive"] = (df["macd_hist"] > 0).astype(int)
+    if all(c in df.columns for c in ["close", "bb_upper"]):
+        features["bb_upper_dist"] = (df["close"] - df["bb_upper"]) / df["close"] * 100
+    if all(c in df.columns for c in ["close", "bb_lower"]):
+        features["bb_lower_dist"] = (df["close"] - df["bb_lower"]) / df["close"] * 100
+    if all(c in df.columns for c in ["ema_9", "ema_21"]):
+        features["ema_9_above_21"] = (df["ema_9"] > df["ema_21"]).astype(int)
+    if all(c in df.columns for c in ["ema_50", "ema_200"]):
+        features["ema_50_above_200"] = (df["ema_50"] > df["ema_200"]).astype(int)
+    if "obv" in df.columns:
+        features["obv_slope"] = df["obv"].pct_change(5) * 100
+    if all(c in df.columns for c in ["stoch_rsi_k", "stoch_rsi_d"]):
+        features["stoch_k_above_d"] = (df["stoch_rsi_k"] > df["stoch_rsi_d"]).astype(int)
 
     return features
 
