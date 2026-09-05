@@ -106,6 +106,28 @@ async def btn_toggle_price_alerts(message: Message, db: Database):
         await message.answer("🔕 Алерты о движении цены отключены.", reply_markup=main_keyboard())
 
 
+# Глобальная ссылка на scan_and_notify (устанавливается из main.py)
+_scan_func = None
+
+
+def set_scan_func(func):
+    global _scan_func
+    _scan_func = func
+
+
+@router.message(F.text == "🔍 Проверить")
+async def btn_manual_scan(message: Message):
+    if _scan_func is None:
+        await message.answer("❌ Функция сканирования недоступна.", reply_markup=main_keyboard())
+        return
+    await message.answer("🔍 Запускаю проверку рынка... Это займёт ~30 сек.", reply_markup=main_keyboard())
+    try:
+        await _scan_func(message.bot)
+        await message.answer("✅ Проверка завершена! Сигналы (если есть) отправлены.", reply_markup=main_keyboard())
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}", reply_markup=main_keyboard())
+
+
 # ---------------------------------------------------------------------------
 # /subscribe /unsubscribe
 # ---------------------------------------------------------------------------
