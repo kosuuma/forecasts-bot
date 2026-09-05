@@ -193,23 +193,24 @@ async def scan_and_notify(bot: Bot):
                 if signal.symbol in sent_symbols:
                     continue
                 sent_symbols.add(signal.symbol)
+                sent_count += 1
 
                 message_text = format_signal_message(signal)
                 for sub in subscribers:
                     if sub["timeframe"] != signal.timeframe:
                         continue
                     if signal.strength_pct < sub["min_confidence"]:
+                        logger.debug(f"Сигнал {signal.symbol} {signal.strength_pct}% не прошёл min_conf={sub['min_confidence']} для {sub['chat_id']}")
                         continue
                     try:
                         await bot.send_message(sub["chat_id"], message_text)
-                        sent_count += 1
                     except Exception as e:
                         logger.error(f"Не удалось отправить сигнал пользователю {sub['chat_id']}: {e}")
                         if "Forbidden" in str(e):
                             await db.unsubscribe(sub["chat_id"])
                             logger.info(f"Автоотписка {sub['chat_id']}: бот заблокирован")
 
-            logger.info(f"Отправлено {sent_count} сигналов из {len(all_signals)} (макс. {max_signals})")
+            logger.info(f"Отправлено {sent_count} лучших сигналов из {len(all_signals)}")
 
         # Проверка резких движений цены
         try:
