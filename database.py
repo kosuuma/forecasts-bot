@@ -16,7 +16,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS subscribers (
     chat_id INTEGER PRIMARY KEY,
     timeframe TEXT DEFAULT '5m',
-    min_confidence INTEGER DEFAULT 60,
+    min_confidence INTEGER DEFAULT 0,
     frequency_minutes INTEGER DEFAULT 5,
     subscribed INTEGER DEFAULT 1,
     price_alerts INTEGER DEFAULT 1,
