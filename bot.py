@@ -239,9 +239,10 @@ async def cmd_signals(message: Message, db: Database):
     for s in recent:
         arrow = "▲" if s["direction"] == "UP" else "▼"
         icon = outcome_icons.get(s["outcome"], "⏳")
+        pair = f"{s['symbol'][:-4]}/{s['symbol'][-4:]}"
         lines.append(
-            f"{icon} {s['symbol'][:-4]}/{s['symbol'][-4:]} {arrow} {s['timeframe']} "
-            f"| {s['strength_label']} {s['strength_pct']}% | {s['created_at']}"
+            f"{icon} {pair} {arrow} {s['timeframe']} "
+            f"{s['strength_pct']}% | {s['created_at']}"
         )
     await message.answer("\n".join(lines), reply_markup=main_keyboard())
 
