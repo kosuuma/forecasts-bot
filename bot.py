@@ -143,7 +143,7 @@ def settings_keyboard(current_tf: str, current_conf: int, subscribed: bool, pric
 
     # Уверенность — с галочкой
     conf_builder = InlineKeyboardBuilder()
-    for conf in (0, 30, 50, 70):
+    for conf in (0, 25, 40, 60):
         label = f"✅ {conf}%+" if conf == current_conf else f"{conf}%+"
         conf_builder.button(text=label, callback_data=f"set_conf:{conf}")
     conf_builder.adjust(4)
