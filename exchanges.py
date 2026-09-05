@@ -254,3 +254,117 @@ async def fetch_orderbook_depth(
     except (ExchangeError, KeyError, IndexError, ValueError) as e:
         logger.warning(f"Не удалось получить orderbook {symbol} на {exchange}: {e}")
         return None
+
+
+# ---------------------------------------------------------------------------
+# Fear & Greed Index (alternative.me)
+# ---------------------------------------------------------------------------
+async def fetch_fear_greed_index(session: aiohttp.ClientSession) -> Optional[dict]:
+    """
+    Получает индекс страха и жадности крипторынка.
+    Возвращает {"value": int, "classification": str, "previous": int}
+    """
+    url = "https://api.alternative.me/fng/?limit=2&format=json"
+    try:
+        async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            if resp.status != 200:
+                return None
+            data = await resp.json()
+            items = data.get("data", [])
+            if len(items) < 1:
+                return None
+            current = items[0]
+            previous = items[1] if len(items) > 1 else current
+            return {
+                "value": int(current["value"]),
+                "classification": current["value_classification"],
+                "previous": int(previous["value"]),
+                "change": int(current["value"]) - int(previous["value"]),
+            }
+    except Exception as e:
+        logger.warning(f"Не удалось получить Fear & Greed Index: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Long/Short Ratio (Binance Futures)
+# ---------------------------------------------------------------------------
+async def fetch_long_short_ratio(
+    session: aiohttp.ClientSession, symbol: str, exchange: str = "binance"
+) -> Optional[dict]:
+    """
+    Получает соотношение лонгов/шортов на фьючерсах.
+    Возвращает {"long_pct": float, "short_pct": float, "ratio": float}
+    """
+    try:
+        if exchange == "binance":
+            url = "https://fapi.binance.com/futures/data/globalLongShortAccountRatio"
+            params = {"symbol": symbol, "period": "5m", "limit": 1}
+            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status != 200:
+                    return None
+                data = await resp.json()
+                if not data:
+                    return None
+                item = data[0]
+                long_pct = float(item["longAccount"]) * 100
+                short_pct = float(item["shortAccount"]) * 100
+                ratio = float(item["longShortRatio"])
+                return {
+                    "long_pct": round(long_pct, 1),
+                    "short_pct": round(short_pct, 1),
+                    "ratio": round(ratio, 3),
+                }
+        return None
+    except Exception as e:
+        logger.debug(f"Не удалось получить Long/Short ratio для {symbol}: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Liquidations (Binance Futures)
+# ---------------------------------------------------------------------------
+async def fetch_liquidations(
+    session: aiohttp.ClientSession, symbol: str, exchange: str = "binance"
+) -> Optional[dict]:
+    """
+    Получает данные о ликвидациях за последние 5 минут.
+    Возвращает {"long_liquidations": float, "short_liquidations": float,
+                 "total": float, "dominant": str}
+    """
+    try:
+        if exchange == "binance":
+            # Force Orders — все принудительные ликвидации
+            url = "https://fapi.binance.com/fapi/v1/allForceOrders"
+            params = {"symbol": symbol, "limit": 50}
+            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status != 200:
+                    return None
+                data = await resp.json()
+                if not data:
+                    return None
+
+                long_liq = 0
+                short_liq = 0
+                for order in data:
+                    qty = float(order.get("origQty", 0))
+                    price = float(order.get("price", 0))
+                    value = qty * price
+                    if order.get("side") == "SELL":
+                        long_liq += value  # long ликвидируется →卖
+                    else:
+                        short_liq += value  # short ликвидируется →买
+
+                total = long_liq + short_liq
+                dominant = "long" if long_liq > short_liq else "short"
+
+                return {
+                    "long_liquidations": round(long_liq, 2),
+                    "short_liquidations": round(short_liq, 2),
+                    "total": round(total, 2),
+                    "dominant": dominant,
+                }
+        return None
+    except Exception as e:
+        logger.debug(f"Не удалось получить ликвидации для {symbol}: {e}")
+        return None
