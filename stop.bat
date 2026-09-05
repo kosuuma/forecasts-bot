@@ -1,4 +1,4 @@
 @echo off
 taskkill /F /IM python.exe >nul 2>&1
-powershell -Command "Get-Process cmd | Where-Object {$_.MainWindowTitle -eq 'autosave' -or $_.MainWindowTitle -eq 'Crypto Bot'} | Stop-Process -Force" >nul 2>&1
-exit
+taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq autosave" >nul 2>&1
+taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq Crypto Bot" >nul 2>&1
