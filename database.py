@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS subscribers (
     min_confidence INTEGER DEFAULT 60,
     frequency_minutes INTEGER DEFAULT 5,
     subscribed INTEGER DEFAULT 1,
+    price_alerts INTEGER DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
