@@ -229,6 +229,7 @@ async def main():
 
     # Dependency injection: передаём db во все хендлеры через workflow_data
     dp["db"] = db
+    set_scan_func(scan_and_notify)
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
