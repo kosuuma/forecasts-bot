@@ -145,7 +145,8 @@ def settings_keyboard(current_tf: str, current_conf: int, subscribed: bool) -> I
 
 @router.message(Command("settings"))
 async def cmd_settings(message: Message, db: Database):
-    settings = await db.get_settings(message.chat.id)
+    chat_id = message.chat.id
+    settings = await db.get_settings(chat_id)
     text = (
         "⚙️ Настройки\n\n"
         f"Таймфрейм: {settings['timeframe']}\n"
