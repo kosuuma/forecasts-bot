@@ -180,6 +180,37 @@ async def scan_and_notify(bot: Bot):
                 except Exception as e:
                     logger.error(f"Ошибка анализа {symbol} [{tf}]: {e}")
 
+        # --- Отправка ТОП-сигналов ---
+        if all_signals:
+            all_signals.sort(key=lambda s: s.strength_pct, reverse=True)
+            sent_symbols = set()
+            sent_count = 0
+            max_signals = 3
+
+            for signal in all_signals:
+                if sent_count >= max_signals:
+                    break
+                if signal.symbol in sent_symbols:
+                    continue
+                sent_symbols.add(signal.symbol)
+
+                message_text = format_signal_message(signal)
+                for sub in subscribers:
+                    if sub["timeframe"] != signal.timeframe:
+                        continue
+                    if signal.strength_pct < sub["min_confidence"]:
+                        continue
+                    try:
+                        await bot.send_message(sub["chat_id"], message_text)
+                        sent_count += 1
+                    except Exception as e:
+                        logger.error(f"Не удалось отправить сигнал пользователю {sub['chat_id']}: {e}")
+                        if "Forbidden" in str(e):
+                            await db.unsubscribe(sub["chat_id"])
+                            logger.info(f"Автоотписка {sub['chat_id']}: бот заблокирован")
+
+            logger.info(f"Отправлено {sent_count} сигналов из {len(all_signals)} (макс. {max_signals})")
+
         # Проверка резких движений цены
         try:
             spikes = await check_price_spikes(session, pairs)
