@@ -208,7 +208,7 @@ from datetime import datetime, timedelta, timezone
 
     # --- Статистика ---
     async def get_stats(self, days: int = 7) -> dict:
-        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         cursor = await self._conn.execute(
             """SELECT outcome, COUNT(*) FROM signals_history
                WHERE created_at >= ? AND outcome != 'pending'
@@ -246,7 +246,7 @@ from datetime import datetime, timedelta, timezone
 
     async def get_streak(self, days: int = 7) -> dict:
         """Последовательность побед/поражений (streak)."""
-        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         cursor = await self._conn.execute(
             """SELECT outcome FROM signals_history
                WHERE created_at >= ? AND outcome IN ('win', 'loss')
@@ -270,7 +270,7 @@ from datetime import datetime, timedelta, timezone
 
     async def get_stats_by_timeframe(self, days: int = 7) -> list:
         """Статистика по таймфреймам."""
-        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         cursor = await self._conn.execute(
             """SELECT timeframe,
                       SUM(CASE WHEN outcome = 'win' THEN 1 ELSE 0 END) as wins,
@@ -292,7 +292,7 @@ from datetime import datetime, timedelta, timezone
         return result
 
     async def get_stats_by_pair(self, days: int = 7) -> list:
-        cutoff = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
         cursor = await self._conn.execute(
             """SELECT symbol,
                       SUM(CASE WHEN outcome = 'win' THEN 1 ELSE 0 END) as wins,
