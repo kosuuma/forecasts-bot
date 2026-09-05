@@ -299,6 +299,7 @@ async def _build_stats_text(db: Database, days: int) -> str:
         f"📈 Всего сигналов: {stats['total_signals']}",
         f"✅ Побед: {stats['wins']}",
         f"❌ Поражений: {stats['losses']}",
+        f"⏳ В ожидании: {stats['pending']}",
         f"⏰ Истекло: {stats['expired']}",
         f"🎲 Серия: {streak_text}",
     ]

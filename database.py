@@ -207,12 +207,19 @@ class Database:
         )
         total_signals = (await cursor.fetchone())[0]
 
+        cursor = await self._conn.execute(
+            "SELECT COUNT(*) FROM signals_history WHERE created_at >= ? AND outcome = 'pending'",
+            (cutoff,),
+        )
+        pending = (await cursor.fetchone())[0]
+
         return {
             "days": days,
             "total_signals": total_signals,
             "wins": wins,
             "losses": losses,
             "expired": expired,
+            "pending": pending,
             "winrate": winrate,
         }
 
