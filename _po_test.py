@@ -29,13 +29,16 @@ async def patched_connect(self, *a, **kw):
     return await orig_connect(self, *a, **kw)
 WebsocketClient.connect = patched_connect
 
-# Use threading.Event (works across threads)
 candles_ready = threading.Event()
 candles_result = [None]
 pending_binary_type = [None]
+ws_loop = [None]
 
 orig_on_message = WebsocketClient.on_message
 async def patched_on_message(self, message):
+    if ws_loop[0] is None:
+        ws_loop[0] = asyncio.get_event_loop()
+
     if isinstance(message, str):
         if message.startswith("451-["):
             try:
@@ -121,7 +124,7 @@ if ok:
         api.subscribe("EURUSD_otc", period=60)
         time.sleep(2)
 
-        # Send getCandles directly via websocket
+        # Send getCandles via the websocket's event loop
         server_time = api.api.time_sync.get_server_native_time()
         end_time = int((server_time // 60) * 60)
         idx = int(time.time() * 100)
@@ -131,12 +134,16 @@ if ok:
         ws_raw = api.api.websocket.websocket
         print(f"Sending getCandles (time={end_time})...")
 
-        # Send raw message using the websocket's send method (already in the right loop)
-        loop = asyncio.get_event_loop()
-        loop.create_task(ws_raw.send(raw_msg))
-        print("Sent!")
+        # Use asyncio.run_coroutine_threadsafe to send from main thread to ws thread
+        if ws_loop[0]:
+            future = asyncio.run_coroutine_threadsafe(ws_raw.send(raw_msg), ws_loop[0])
+            future.result(timeout=5)
+            print("Sent!")
+        else:
+            # Fallback: try library's send_message
+            api.api.websocket.send_message(raw_msg)
+            print("Sent via send_message!")
 
-        # Wait using threading.Event (cross-thread safe)
         print("Waiting for candles...")
         candles_ready.wait(timeout=15)
 
