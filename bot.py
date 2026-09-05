@@ -398,10 +398,12 @@ async def cb_stats(query: CallbackQuery, db: Database):
 @router.message(Command("train"))
 async def cmd_train(message: Message, db: Database):
     from ml import train_model, MODEL_PATH
-
-    await message.answer("🔄 Начинаю обучение ML-модели...")
-
+    from indicators import calculate_all
+    from exchanges import fetch_klines
     from datetime import datetime, timedelta, timezone
+
+    await message.answer("🔄 Собираю данные для обучения ML...")
+
     cutoff = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
     cursor = await db._conn.execute(
         """SELECT symbol, timeframe, direction, strength_label, strength_pct,
@@ -413,14 +415,62 @@ async def cmd_train(message: Message, db: Database):
     rows = await cursor.fetchall()
     cols = ["symbol", "timeframe", "direction", "strength_label", "strength_pct",
             "price", "created_at", "outcome"]
-    import pandas as pd
-    df = pd.DataFrame([dict(zip(cols, r)) for r in rows])
 
-    if len(df) < 50:
-        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(df)} сигналов (нужно минимум 50)")
+    import pandas as pd
+    signals_df = pd.DataFrame([dict(zip(cols, r)) for r in rows])
+
+    if len(signals_df) < 50:
+        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(signals_df)} сигналов (нужно минимум 50)")
         return
 
-    result = train_model(df, min_samples=50)
+    unique_pairs = signals_df[["symbol", "timeframe"]].drop_duplicates()
+    indicator_dfs = []
+
+    async with __import__("aiohttp").ClientSession() as session:
+        for _, row in unique_pairs.iterrows():
+            symbol = row["symbol"]
+            tf = row["timeframe"]
+            try:
+                df_kl = await fetch_klines(session, symbol, tf, exchange=config.DEFAULT_EXCHANGE, limit=300)
+                if df_kl is not None and len(df_kl) >= 50:
+                    df_kl = calculate_all(df_kl)
+                    df_kl["symbol"] = symbol
+                    df_kl["timeframe"] = tf
+                    indicator_dfs.append(df_kl)
+            except Exception as e:
+                logger.debug(f"Не удалось получить данные для {symbol} {tf}: {e}")
+
+    if not indicator_dfs:
+        await message.answer("❌ Не удалось загрузить данные для обучения.", reply_markup=main_keyboard())
+        return
+
+    all_indicators = pd.concat(indicator_dfs, ignore_index=True)
+
+    merged_rows = []
+    for _, sig in signals_df.iterrows():
+        mask = (all_indicators["symbol"] == sig["symbol"]) & (all_indicators["timeframe"] == sig["timeframe"])
+        ind = all_indicators[mask]
+        if ind.empty:
+            continue
+        try:
+            sig_time = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
+            ind_copy = ind.copy()
+            if "open_time" in ind_copy.columns:
+                ind_copy["_diff"] = abs((ind_copy["open_time"] - sig_time).dt.total_seconds())
+            else:
+                ind_copy["_diff"] = range(len(ind_copy))
+            closest = ind_copy.loc[ind_copy["_diff"].idxmin()]
+            merged_rows.append(closest.to_dict() | {"outcome": sig["outcome"]})
+        except Exception:
+            continue
+
+    if not merged_rows:
+        await message.answer("❌ Не удалось сопоставить сигналы с индикаторами.", reply_markup=main_keyboard())
+        return
+
+    df_train = pd.DataFrame(merged_rows)
+
+    result = train_model(df_train, min_samples=50)
     if result:
         await message.answer(
             f"✅ ML модель обучена!\n\n"
