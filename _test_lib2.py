@@ -3,8 +3,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 logging.basicConfig(level=logging.INFO)
 from pocketoptionapi import PocketOption
 
-# Library expects: session, isDemo, uid, platform format
-SSID = r'42["auth",{"session":"9aca9c3cc8c5e85691bbded020e0c83e","isDemo":1,"uid":140064076,"platform":2,"isFastHistory":true,"isOptimized":true}]'
+# Exact SSID from browser - sessionToken format
+SSID = r'42["auth",{"sessionToken":"9aca9c3cc8c5e85691bbded020e0c83e","uid":"140064076","lang":"ru","currentUrl":"cabinet/demo-quick-high-low","isChart":1}]'
 
 api = PocketOption(SSID)
 ok, err = api.connect()
