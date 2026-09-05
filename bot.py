@@ -419,8 +419,8 @@ async def cmd_train(message: Message, db: Database):
     import pandas as pd
     signals_df = pd.DataFrame([dict(zip(cols, r)) for r in rows])
 
-    if len(signals_df) < 50:
-        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(signals_df)} сигналов (нужно минимум 50)")
+    if len(signals_df) < 15:
+        await message.answer(f"⚠️ Недостаточно данных для обучения: {len(signals_df)} сигналов (нужно минимум 15)")
         return
 
     unique_pairs = signals_df[["symbol", "timeframe"]].drop_duplicates()
@@ -468,7 +468,7 @@ async def cmd_train(message: Message, db: Database):
 
     df_train = pd.DataFrame(merged_rows)
 
-    result = train_model(df_train, min_samples=50)
+    result = train_model(df_train, min_samples=15)
     if result:
         await message.answer(
             f"✅ ML модель обучена!\n\n"
