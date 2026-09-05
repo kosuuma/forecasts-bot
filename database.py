@@ -106,7 +106,7 @@ class Database:
 
     async def get_settings(self, chat_id: int) -> dict:
         cursor = await self._conn.execute(
-            "SELECT timeframe, min_confidence, frequency_minutes, subscribed FROM subscribers WHERE chat_id = ?",
+            "SELECT timeframe, min_confidence, frequency_minutes, subscribed, price_alerts FROM subscribers WHERE chat_id = ?",
             (chat_id,),
         )
         row = await cursor.fetchone()
@@ -116,12 +116,14 @@ class Database:
                 "min_confidence": 60,
                 "frequency_minutes": config.SCAN_INTERVAL_MINUTES,
                 "subscribed": False,
+                "price_alerts": True,
             }
         return {
             "timeframe": row[0],
             "min_confidence": row[1],
             "frequency_minutes": row[2],
             "subscribed": bool(row[3]),
+            "price_alerts": bool(row[4]) if row[4] is not None else True,
         }
 
     async def get_active_subscribers(self) -> list:
