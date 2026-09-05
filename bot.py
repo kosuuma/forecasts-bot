@@ -22,8 +22,9 @@ router = Router()
 # ---------------------------------------------------------------------------
 # Главное меню (ReplyKeyboard — всегда внизу)
 # ---------------------------------------------------------------------------
-def main_keyboard() -> ReplyKeyboardMarkup:
-    """Клавиатура с основными командами — не нужно набирать вручную."""
+def main_keyboard(price_alerts: bool = True) -> ReplyKeyboardMarkup:
+    """Клавиатура с основными командами."""
+    alert_label = "🔕 Выкл алерты цены" if price_alerts else "🔔 Вкл алерты цены"
     return ReplyKeyboardMarkup(
         keyboard=[
             [
@@ -37,6 +38,9 @@ def main_keyboard() -> ReplyKeyboardMarkup:
             [
                 KeyboardButton(text="✅ Подписаться"),
                 KeyboardButton(text="❌ Отписаться"),
+            ],
+            [
+                KeyboardButton(text=alert_label),
             ],
         ],
         resize_keyboard=True,
