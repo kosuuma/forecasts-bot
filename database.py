@@ -161,7 +161,7 @@ class Database:
                FROM signals_history ORDER BY created_at DESC LIMIT ?""",
             (limit,),
         )
-        rows = cursor.fetchall()
+        rows = await cursor.fetchall()
         cols = ["symbol", "timeframe", "direction", "strength_label", "strength_pct", "price", "created_at", "outcome"]
         result = []
         for r in rows:
