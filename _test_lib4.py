@@ -1,0 +1,50 @@
+import sys, time, logging
+sys.stdout.reconfigure(encoding="utf-8")
+logging.basicConfig(level=logging.INFO)
+from pocketoptionapi import PocketOption
+from pocketoptionapi.ws.client import WebsocketClient
+
+# Exact SSID from browser
+EXACT_SSID = '42["auth",{"sessionToken":"9aca9c3cc8c5e85691bbded020e0c83e","uid":"140064076","lang":"ru","currentUrl":"cabinet/demo-quick-high-low","isChart":1}]'
+
+# Monkey-patch: send exact SSID
+def patched_build(self):
+    return EXACT_SSID
+WebsocketClient._build_auth_message = patched_build
+
+# Monkey-patch: skip second region
+orig_connect = WebsocketClient.connect
+async def patched_connect(self, *a, **kw):
+    self.regions = ["DEMO"]
+    self.demo_regions = ["DEMO"]
+    self.real_regions = ["REAL"]
+    return await orig_connect(self, *a, **kw)
+WebsocketClient.connect = patched_connect
+
+api = PocketOption(EXACT_SSID)
+ok, err = api.connect()
+print(f"Connect: ok={ok}, err={err}")
+
+if ok:
+    for i in range(50):
+        if api.check_connect():
+            print(f"Connected after {i*0.1:.1f}s")
+            break
+        time.sleep(0.1)
+    else:
+        print("Not connected")
+
+    if api.check_connect():
+        print("Requesting EURUSD_otc candles...")
+        api.subscribe("EURUSD_otc", period=60)
+        time.sleep(3)
+        try:
+            candles = api.get_historical_candles("EURUSD_otc", period=60)
+            if candles is not None:
+                print(f"GOT {len(candles)} CANDLES!")
+                print(candles.tail(5).to_string())
+            else:
+                print("No candles")
+        except Exception as e:
+            print(f"Error: {e}")
+    api.disconnect()
