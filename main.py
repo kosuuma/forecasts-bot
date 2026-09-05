@@ -16,7 +16,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import config
 from database import Database
-from bot import build_dispatcher
+from bot import build_dispatcher, set_scan_func
 from exchanges import (fetch_klines, fetch_funding_rate, fetch_orderbook_depth,
                        fetch_fear_greed_index, fetch_long_short_ratio, fetch_liquidations)
 from signals import analyze, format_signal_message
