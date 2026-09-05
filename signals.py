@@ -86,13 +86,13 @@ class Signal:
 def _check_up_conditions(last: pd.Series, sr: dict) -> list:
     checks = []
 
-    rsi_ok = last["rsi"] < config.RSI_OVERSOLD
+    rsi_ok = last["rsi"] < config.RSI_OVERSOLD + 10
     checks.append(SignalCheck("RSI", rsi_ok, f"{last['rsi']:.1f}"))
 
-    macd_ok = last["macd"] > last["macd_signal"] and last["macd_hist"] > 0
+    macd_ok = last["macd"] > last["macd_signal"]
     checks.append(SignalCheck("MACD", macd_ok, "Бычий кросс" if macd_ok else "Нет кросса"))
 
-    bb_ok = last["close"] <= last["bb_lower"] * 1.01
+    bb_ok = last["close"] <= last["bb_lower"] * 1.03
     checks.append(SignalCheck("BB", bb_ok, "У нижней границы" if bb_ok else "В канале"))
 
     ema_ok = last["close"] > last["ema_50"]
@@ -101,7 +101,7 @@ def _check_up_conditions(last: pd.Series, sr: dict) -> list:
     vol_ok = last["volume_ratio"] >= config.VOLUME_SPIKE_MULTIPLIER
     checks.append(SignalCheck("Volume", vol_ok, f"x{last['volume_ratio']:.1f} от среднего"))
 
-    sr_ok = sr["distance_to_support_pct"] <= 0.5
+    sr_ok = sr["distance_to_support_pct"] <= 1.5
     checks.append(SignalCheck("S/R", sr_ok, "У поддержки" if sr_ok else "Не у уровня"))
 
     return checks
