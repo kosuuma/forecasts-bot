@@ -133,6 +133,14 @@ class Database:
         rows = await cursor.fetchall()
         return [{"chat_id": r[0], "timeframe": r[1], "min_confidence": r[2]} for r in rows]
 
+    async def get_active_subscribers_with_alerts(self) -> list:
+        cursor = await self._conn.execute(
+            "SELECT chat_id, timeframe, min_confidence, price_alerts FROM subscribers WHERE subscribed = 1"
+        )
+        rows = await cursor.fetchall()
+        return [{"chat_id": r[0], "timeframe": r[1], "min_confidence": r[2],
+                 "price_alerts": bool(r[3]) if r[3] is not None else True} for r in rows]
+
     # --- История сигналов ---
     async def save_signal(self, signal) -> int:
         cursor = await self._conn.execute(
